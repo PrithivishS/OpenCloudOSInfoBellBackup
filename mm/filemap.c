@@ -2215,11 +2215,18 @@ page_ok:
 page_not_up_to_date:
 		/* Get exclusive access to the page ... */
 #ifdef CONFIG_ASYNC_PAGE_LOCKING
-		if (iocb->ki_flags & IOCB_WAITQ)
+		if (iocb->ki_flags & IOCB_WAITQ) {
+			if (written) {
+				put_page(page);
+				goto out;
+			}
 			error = lock_page_async(page, iocb->ki_waitq);
-		else
+		} else {
 #endif
 			error = lock_page_killable(page);
+#ifdef CONFIG_ASYNC_PAGE_LOCKING
+		}
+#endif
 		if (unlikely(error))
 			goto readpage_error;
 
@@ -2265,11 +2272,18 @@ readpage:
 
 		if (!PageUptodate(page)) {
 #ifdef CONFIG_ASYNC_PAGE_LOCKING
-			if (iocb->ki_flags & IOCB_WAITQ)
+			if (iocb->ki_flags & IOCB_WAITQ) {
+				if (written) {
+					put_page(page);
+					goto out;
+				}
 				error = lock_page_async(page, iocb->ki_waitq);
-			else
+			} else {
 #endif
 				error = lock_page_killable(page);
+#ifdef CONFIG_ASYNC_PAGE_LOCKING
+			}
+#endif
 
 			if (unlikely(error))
 				goto readpage_error;
