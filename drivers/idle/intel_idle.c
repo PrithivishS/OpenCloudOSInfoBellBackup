@@ -90,6 +90,12 @@ static struct cpuidle_device __percpu *intel_idle_cpuidle_devices;
 static struct cpuidle_state *cpuidle_state_table __initdata;
 
 /*
+ * Enable interrupts before entering the C-state. On some platforms and for
+ * some C-states, this may measurably decrease interrupt latency.
+ */
+#define CPUIDLE_FLAG_IRQ_ENABLE		BIT(14)
+
+/*
  * Enable this state by default even if the ACPI _CST does not list it.
  */
 #define CPUIDLE_FLAG_ALWAYS_ENABLE	BIT(15)
@@ -127,6 +133,9 @@ static __cpuidle int intel_idle(struct cpuidle_device *dev,
 	struct cpuidle_state *state = &drv->states[index];
 	unsigned long eax = flg2MWAIT(state->flags);
 	unsigned long ecx = 1; /* break on interrupt flag */
+
+	if (state->flags & CPUIDLE_FLAG_IRQ_ENABLE)
+		local_irq_enable();
 
 	mwait_idle_with_hints(eax, ecx);
 
@@ -697,7 +706,7 @@ static struct cpuidle_state skx_cstates[] = {
 	{
 		.name = "C1",
 		.desc = "MWAIT 0x00",
-		.flags = MWAIT2flg(0x00),
+		.flags = MWAIT2flg(0x00) | CPUIDLE_FLAG_IRQ_ENABLE,
 		.exit_latency = 2,
 		.target_residency = 2,
 		.enter = &intel_idle,
@@ -726,7 +735,7 @@ static struct cpuidle_state icx_cstates[] = {
 	{
 		.name = "C1",
 		.desc = "MWAIT 0x00",
-		.flags = MWAIT2flg(0x00),
+		.flags = MWAIT2flg(0x00) | CPUIDLE_FLAG_IRQ_ENABLE,
 		.exit_latency = 1,
 		.target_residency = 1,
 		.enter = &intel_idle,
