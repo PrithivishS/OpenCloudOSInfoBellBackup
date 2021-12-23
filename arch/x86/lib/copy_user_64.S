@@ -224,6 +224,7 @@ EXPORT_SYMBOL(copy_user_enhanced_fast_string)
  * Don't try to copy the tail if machine check happened
  *
  * Input:
+ * eax trap number written by ex_handler_copy()
  * rdi destination
  * rsi source
  * rdx count
@@ -233,9 +234,17 @@ EXPORT_SYMBOL(copy_user_enhanced_fast_string)
  */
 ALIGN;
 .Lcopy_user_handle_tail:
+	cmp $18,%eax
+	je 3f
+
 	movl %edx,%ecx
 1:	rep movsb
 2:	mov %ecx,%eax
+	ASM_CLAC
+	ret
+
+3:
+	movl %edx,%eax
 	ASM_CLAC
 	ret
 
