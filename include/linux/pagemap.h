@@ -494,6 +494,9 @@ static inline int wake_page_match(struct wait_page_queue *wait_page,
 
 extern void __lock_page(struct page *page);
 extern int __lock_page_killable(struct page *page);
+#ifdef CONFIG_ASYNC_PAGE_LOCKING
+extern int __lock_page_async(struct page *page, struct wait_page_queue *wait);
+#endif
 extern int __lock_page_or_retry(struct page *page, struct mm_struct *mm,
 				unsigned int flags);
 extern void unlock_page(struct page *page);
@@ -529,6 +532,24 @@ static inline int lock_page_killable(struct page *page)
 		return __lock_page_killable(page);
 	return 0;
 }
+
+#ifdef CONFIG_ASYNC_PAGE_LOCKING
+/*
+ * lock_page_async - Lock the page, unless this would block. If the page
+ * is already locked, then queue a callback when the page becomes unlocked.
+ * This callback can then retry the operation.
+ *
+ * Returns 0 if the page is locked successfully, or -EIOCBQUEUED if the page
+ * was already locked and the callback defined in 'wait' was queued.
+ */
+static inline int lock_page_async(struct page *page,
+				  struct wait_page_queue *wait)
+{
+	if (!trylock_page(page))
+		return __lock_page_async(page, wait);
+	return 0;
+}
+#endif
 
 /*
  * lock_page_or_retry - Lock the page, unless this would block and the
