@@ -320,6 +320,7 @@ enum rw_hint {
 /* iocb->ki_waitq is valid */
 #define IOCB_WAITQ		(1 << 8)
 #endif
+#define IOCB_NOIO		(1 << 9)
 
 struct kiocb {
 	struct file		*ki_filp;
