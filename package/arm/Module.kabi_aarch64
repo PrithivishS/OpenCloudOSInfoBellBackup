@@ -9717,7 +9717,6 @@
 0x77003d2a	bd_finish_claiming	vmlinux	EXPORT_SYMBOL	
 0xfb259b1a	dummy_irq_chip	vmlinux	EXPORT_SYMBOL_GPL	
 0x4eac5fc1	cpu_mitigations_auto_nosmt	vmlinux	EXPORT_SYMBOL_GPL	
-0x8f678b07	__stack_chk_guard	vmlinux	EXPORT_SYMBOL	
 0xff169eb7	rdma_iw_cm_id	drivers/infiniband/core/rdma_cm	EXPORT_SYMBOL	
 0x9863ebca	parport_find_base	drivers/parport/parport	EXPORT_SYMBOL	
 0xe94df83c	mlx5_fpga_mem_read	drivers/net/ethernet/mellanox/mlx5/core/mlx5_core	EXPORT_SYMBOL	
