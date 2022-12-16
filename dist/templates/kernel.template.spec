@@ -194,7 +194,6 @@ Source30: check-kabi
 # Start from Source2000 to Source2999, for userspace tools
 Source2000: cpupower.service
 Source2001: cpupower.config
-Source2002: tlinux_cciss_link_compat.modules
 
 ###### Kernel package definations ##############################################
 ### Main meta package
@@ -919,11 +918,6 @@ InstTools() {
 	install -m755 slabinfo %{buildroot}%{_bindir}/slabinfo
 	install -m755 page_owner_sort %{buildroot}%{_bindir}/page_owner_sort
 	popd
-
-%ifarch x86_64
-	mkdir -p %{buildroot}%{_sysconfdir}/sysconfig/modules
-	install -m755 %{SOURCE2002} %{buildroot}%{_sysconfdir}/sysconfig/modules
-%endif
 	# with_tools
 }
 
@@ -1150,11 +1144,6 @@ fi
 %ghost /lib/modules/%{kernel_unamer}/modules.symbols.bin
 
 %files modules -f modules.list
-%ifarch x86_64
-# This might be duplicated with tlinux_cciss_link.modules from kernel-tlinux package, but that's fine
-# since the script itself checks if it's neccessary to re-apply the workaround
-%{_sysconfdir}/sysconfig/modules/tlinux_cciss_link_compat.modules
-%endif
 %defattr(-,root,root)
 
 %files devel
