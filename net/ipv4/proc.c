@@ -44,6 +44,34 @@
 
 #define TCPUDP_MIB_MAX max_t(u32, UDP_MIB_MAX, TCP_MIB_MAX)
 
+extern struct proto unix_proto;
+extern struct proto netlink_proto;
+
+/*
+ *	Report socket allocation statistics
+ */
+static int sockets_seq_show(struct seq_file *seq, void *v)
+{
+	int lite;
+	struct net *net = seq->private;
+	int sockets, tcp_sock, udp_sock;
+	int raw_sock, unix_sock, netlink_sock;
+
+	sockets = sock_inuse_get(net);
+	lite = sock_prot_inuse_get(net, &udplite_prot);
+	tcp_sock = sock_prot_inuse_get(net, &tcp_prot);
+	udp_sock = sock_prot_inuse_get(net, &udp_prot);
+	raw_sock = sock_prot_inuse_get(net, &raw_prot);
+	unix_sock = sock_prot_inuse_get(net, &unix_proto);
+	netlink_sock = sock_prot_inuse_get(net, &netlink_proto);
+
+	udp_sock += lite;
+	seq_printf (seq, "%d,%d,%d,%d,%d,%d\n", sockets, tcp_sock, udp_sock,
+		    raw_sock, unix_sock, netlink_sock);
+
+	return 0;
+}
+
 /*
  *	Report socket allocation statistics [mea@utu.fi]
  */
@@ -70,6 +98,9 @@ static int sockstat_seq_show(struct seq_file *seq, void *v)
 	seq_printf(seq,  "FRAG: inuse %u memory %lu\n",
 		   atomic_read(&net->ipv4.fqdir->rhashtable.nelems),
 		   frag_mem_limit(net->ipv4.fqdir));
+	seq_printf(seq, "UNIX: inuse %d\n", sock_prot_inuse_get(net, &unix_proto));
+	seq_printf(seq, "NETLINK: inuse %d\n", sock_prot_inuse_get(net, &netlink_proto));
+
 	return 0;
 }
 
@@ -540,10 +571,15 @@ static __net_init int ip_proc_init_net(struct net *net)
 	if (!proc_create_net_single("dropstat", 0444, net->proc_net,
 				    dropstat_seq_show, NULL))
 		goto out_dropstat;
+	if (!proc_create_net_single("sockets", 0444, net->proc_net,
+			sockets_seq_show, NULL))
+		goto out_dropsockets;
 
 
 	return 0;
 
+out_dropsockets:
+	remove_proc_entry("dropstat", net->proc_net);
 out_dropstat:
 	remove_proc_entry("snmp", net->proc_net);
 out_snmp:
@@ -560,6 +596,7 @@ static __net_exit void ip_proc_exit_net(struct net *net)
 	remove_proc_entry("netstat", net->proc_net);
 	remove_proc_entry("sockstat", net->proc_net);
 	remove_proc_entry("dropstat", net->proc_net);
+	remove_proc_entry("sockets", net->proc_net);
 }
 
 static __net_initdata struct pernet_operations ip_proc_ops = {
