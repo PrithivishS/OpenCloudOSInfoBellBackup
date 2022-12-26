@@ -224,6 +224,7 @@ EXPORT_SYMBOL(copy_user_enhanced_fast_string)
  * Don't try to copy the tail if machine check happened
  *
  * Input:
+ * eax trap number written by ex_handler_copy()
  * rdi destination
  * rsi source
  * rdx count
@@ -233,22 +234,17 @@ EXPORT_SYMBOL(copy_user_enhanced_fast_string)
  */
 ALIGN;
 .Lcopy_user_handle_tail:
-	movl %edx,%ecx
-	cmp $18,%eax		/* check if X86_TRAP_MC */
+	cmp $18,%eax
 	je 3f
+
+	movl %edx,%ecx
 1:	rep movsb
 2:	mov %ecx,%eax
 	ASM_CLAC
 	ret
 
-	/*
-	 * Return zero to pretend that this copy succeeded. This
-	 * is counter-intuitive, but needed to prevent the code
-	 * in lib/iov_iter.c from retrying and running back into
-	 * the poison cache line again. The machine check handler
-	 * will ensure that a SIGBUS is sent to the task.
-	 */
-3:	xorl %eax,%eax
+3:
+	movl %edx,%eax
 	ASM_CLAC
 	ret
 
