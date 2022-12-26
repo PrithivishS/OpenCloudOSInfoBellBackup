@@ -194,10 +194,6 @@ Source30: check-kabi
 # Start from Source2000 to Source2999, for userspace tools
 Source2000: cpupower.service
 Source2001: cpupower.config
-Source2002: tlinux_cciss_link_compat.modules
-
-### TK4 MLNX OFED
-Source3000: MLNX_OFED_SRC-5.1-2.5.8.0.46.tgz
 
 ###### Kernel package definations ##############################################
 ### Main meta package
@@ -922,11 +918,6 @@ InstTools() {
 	install -m755 slabinfo %{buildroot}%{_bindir}/slabinfo
 	install -m755 page_owner_sort %{buildroot}%{_bindir}/page_owner_sort
 	popd
-
-%ifarch x86_64
-	mkdir -p %{buildroot}%{_sysconfdir}/sysconfig/modules
-	install -m755 %{SOURCE2002} %{buildroot}%{_sysconfdir}/sysconfig/modules
-%endif
 	# with_tools
 }
 
@@ -957,72 +948,6 @@ CollectKernelFile() {
 	mv %{buildroot}/{core.list,modules.list} ../
 }
 
-BuildInstMLNXOFED() {
-	inst_mod() {
-		src_mod=$1
-		src_mod_name=$(basename "$src_mod")
-		dest=""
-
-		# Replace old module
-		for mod in $(find $KernModule -name "*$src_mod_name*"); do
-			echo "MLNX_OFED: REPLACING: kernel module $mod"
-			dest=$(dirname "$mod")
-			rm -f "$mod"
-		done
-
-		# Install new module
-		if [ ! -d "$dest" ]; then
-			echo "MLNX_OFED: NEW: kernel module $dest/$mod"
-			dest="$KernModule/kernel/drivers/ofed_addon"
-			mkdir -p $dest
-		fi
-
-		cp -f "$src_mod" "$dest/"
-	}
-
-	handle_rpm() {
-		rm -rf extracted
-		mkdir -p extracted && pushd extracted
-
-		rpm2cpio $1 | cpio -id
-		find . -name "*.ko" -or -name "*.ko.xz" | while read -r mod; do
-			inst_mod "$mod"
-		done
-		# find . -name "*.debug" | while read -r mod; do
-		#       inst_debuginfo "$mod"
-		# done
-
-		popd
-	}
-
-	mkdir mlnx-ofed
-	pushd mlnx-ofed
-
-	tar -xzvf %{SOURCE3000}
-	pushd MLNX_OFED_SRC*
-
-	# Unset $HOME, when doing koji build, koji insert special macros into ~/.rpmmacros that will break MLNX installer:
-	# Koji sets _rpmfilename  %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm,
-	# But the installer assumes "_rpmfilename %{_build_name_fmt}" so it will fail to find the built rpm.
-	DISTRO=$(echo "%{?dist}" | sed "s/\.//g")
-	HOME= ./install.pl --build-only --kernel-only --without-depcheck --distro $DISTRO \
-	--kernel $KernUnameR --kernel-sources $KernDevel \
-	--without-mlx5_fpga_tools --without-mlnx-rdma-rxe --without-mlnx-nfsrdma \
-	--without-mlnx-nvme --without-isert --without-iser --without-srp --without-rshim --without-mdev \
-	--disable-kmp
-
-	# get all kernel module rpms that were built against target kernel
-	find RPMS -name "*.rpm" -type f | while read -r pkg; do
-		if rpm -qlp $pkg | grep "\.ko" | grep -q "$KernelUnameR"; then
-			handle_rpm "$(realpath $pkg)"
-		fi
-	done
-
-	popd
-
-	popd
-}
-
 ###### Start Kernel Install
 
 %if %{with_core}
@@ -1038,8 +963,6 @@ InstKernelDevel
 %if %{with_headers}
 InstKernelHeaders
 %endif
-
-BuildInstMLNXOFED
 
 %if %{with_perf}
 InstPerf
@@ -1221,11 +1144,6 @@ fi
 %ghost /lib/modules/%{kernel_unamer}/modules.symbols.bin
 
 %files modules -f modules.list
-%ifarch x86_64
-# This might be duplicated with tlinux_cciss_link.modules from kernel-tlinux package, but that's fine
-# since the script itself checks if it's neccessary to re-apply the workaround
-%{_sysconfdir}/sysconfig/modules/tlinux_cciss_link_compat.modules
-%endif
 %defattr(-,root,root)
 
 %files devel
