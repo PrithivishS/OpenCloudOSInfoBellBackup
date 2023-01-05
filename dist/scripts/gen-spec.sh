@@ -31,8 +31,8 @@ while [[ $# -gt 0 ]]; do
 			BUILD_ARCH=$2
 			shift 2
 			;;
-		--commit )
-			COMMIT=$2
+		--gitref )
+			GITREF=$2
 			shift 2
 			;;
 		--set-default-disabled )
@@ -54,14 +54,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 # This function will prepare $KERNEL_MAJVER, $KERNEL_RELVER
-prepare_kernel_ver "${COMMIT:-HEAD}"
+prepare_kernel_ver "${GITREF:-HEAD}"
 
 BUILD_ARCH="${BUILD_ARCH:-$SPEC_ARCH}"
 
-RPM_NAME="kernel${KERNEL_VARIANT:+-$KERNEL_VARIANT}${KERNEL_DIST:+-$KERNEL_DIST}"
+RPM_NAME="kernel${KERNEL_VARIANT:+-$KERNEL_VARIANT}${KDIST:+-$KDIST}"
 RPM_VERSION=${KERNEL_MAJVER//-/.}
 RPM_RELEASE=${KERNEL_RELVER//-/.}
-RPM_RELEASE=${RPM_RELEASE%".$KERNEL_DIST"}
+RPM_RELEASE=${RPM_RELEASE%".$KDIST"}
 RPM_VENDOR=$(get_dist_makefile_var VENDOR_CAPITALIZED)
 RPM_URL=$(get_dist_makefile_var URL)
 
@@ -124,13 +124,6 @@ _gen_arch_source() {
 	for arch in $BUILD_ARCH; do
 		echo "Source$kabi_source_num: Module.kabi_$arch"
 		kabi_source_num=$((kabi_source_num + 1))
-	done
-
-	# Source1400 - Source1599 for module filter
-	local filter_source_num=1400 arch
-	for arch in $BUILD_ARCH; do
-		echo "Source$filter_source_num: filter-$arch.sh"
-		filter_source_num=$((filter_source_num + 1))
 	done
 }
 

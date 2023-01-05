@@ -46,9 +46,6 @@ KPATCHLEVEL=
 KSUBLEVEL=
 KEXTRAVERSION=
 
-# Kernel dist release (eg. <none>/tks/tlinux4)
-KDIST=
-
 # KPREMERGEWINDOW: If we are building a commit in the first merge window
 # In the first merge time window, after a formal kernel release, and before rc1 release of next kernel,
 # the KPATCHLEVEL will be stuck in lower value, which confuses RPM in many ways. So just bump
@@ -93,15 +90,43 @@ export KERNEL_DIST=
 # Only used for make-release
 export KERNEL_PREV_RELREASE_TAG=
 
+# Get the tag of a git ref, if the git ref itself is a valid tag, just return itself
+# else, search latest tag before this git ref.
+_get_last_git_tag_of() {
+	local gitref=$1; shift
+	local last_tag tag
+	local tagged
+
+	for tag in $(git "$@" tag --points-at "$gitref"); do
+		tagged=1
+		last_tag="$tag"
+		if [[ "$tag" == "$gitref" ]]; then
+			break
+		fi
+		# If HEAD is tagged with multiple tags and user is not asking to use one of them,
+		# use the first one found matching release info.
+		if [[ "$gitref" == HEAD ]] && _get_rel_info_from_tag "$tag" > /dev/null; then
+			break
+		fi
+	done
+
+	if [[ -z "$last_tag" ]]; then
+		tagged=0
+		last_tag=$(git "$@" describe --tags --abbrev=0 "$gitref" 2>/dev/null)
+	fi
+
+	echo "$last_tag"
+	return $tagged
+}
+
 # $1: git tag or git commit, defaults to HEAD
 # $2: kernel source tree, should be a git repo
 get_kernel_code_version() {
 	local gitref=${1:-HEAD}
 	local repo=${2:-$TOPDIR}
-	local makefile dist_makefile
+	local makefile
 
 	makefile=$(git -C "$repo" show "$gitref:Makefile" 2>/dev/null || cat "$repo/Makefile")
-	dist_makefile=$(git -C "$repo" show "$gitref:$DISTPATH/Makefile" 2>/dev/null || cat "$repo/$DISTPAN/Makefile")
 
 	if [ ! "$makefile" ]; then
 		die "Error: Failed to read Makefile"
@@ -123,8 +148,8 @@ get_kernel_code_version() {
 		KRCRELEASE=1
 	fi
 
-	KDIST=$(sed -nE '/^KDIST\s*:?=\s*/{s///;p;q}' <<< "$dist_makefile")
-	KERNEL_DIST="$KDIST"
+	# Read KDIST using gitref for historical accurate value.
+	KERNEL_DIST=$(get_dist_makefile_var KDIST "$gitref" "$repo")
 
 	return 0
 }
@@ -133,6 +158,7 @@ _first_merge_window_detection() {
 	local gitref=${1:-HEAD}
 	local repo=${2:-$TOPDIR}
 	local upstream_base upstream_lasttag upstream_gitdesc
+	local tagged
 
 	# If KSUBLEVEL or KEXTRAVERSION is  set, it's not in the first merge window of a major release
 	[[ $KSUBLEVEL -eq 0 ]] || return 1
@@ -142,14 +168,15 @@ _first_merge_window_detection() {
 	# Get latest merge base if forked from upstream to merge window detection
 	# merge window is an upstream-only thing
 	if upstream_base=$(git -C "$repo" merge-base "$gitref" "$upstream" 2>/dev/null); then
-		upstream_lasttag=$(git -C "$repo" describe --tags --abbrev=0 "$upstream_base" 2>/dev/null)
 		upstream_gitdesc=$(git -C "$repo" describe --tags --abbrev=12 "$upstream_base" 2>/dev/null)
+		upstream_lasttag=$(_get_last_git_tag_of "$upstream_base" -C "$repo")
+		tagged=$?
 
 		if \
 			# If last tag is an tagged upstream release
 			[[ $upstream_lasttag == v$KVERSION.$KPATCHLEVEL ]] && \
 			# And if merge base is ahead of the taggewd release
-			[[ $upstream_gitdesc != "$upstream_lasttag" ]]; then
+			[[ "$tagged" -eq 1 ]]; then
 			# Then it's in first merge window
 			return 0
 		fi
@@ -163,6 +190,7 @@ _first_merge_window_detection() {
 # Get release info from git tag
 _get_rel_info_from_tag() {
 	local tag=$1 rel ret=0
+	local kextraversion=${KEXTRAVERSION#-}
 
 	if [[ $tag == *"$KVERSION.$KPATCHLEVEL.$KSUBLEVEL"* ]]; then
 		rel=${tag#*"$KVERSION.$KPATCHLEVEL.$KSUBLEVEL"}
@@ -173,10 +201,9 @@ _get_rel_info_from_tag() {
 	else
 		return 1
 	fi
-	rel=${rel#-}
-	rel=${rel#.}
 
-	local kextraversion=${KEXTRAVERSION#-}
+	rel=${rel//-/.}
+	rel=${rel#.}
 
 	if [[ -z "$kextraversion" ]]; then
 		# If previous KEXTRAVERSION is not empty but now empty,
@@ -186,7 +213,7 @@ _get_rel_info_from_tag() {
 	elif [ "$kextraversion" -eq "$kextraversion" ] &>/dev/null; then
 		case $rel in
 			# Extra version is release number, ok
-			$kextraversion | "$kextraversion."* | "$kextraversion-"* ) ;;
+			$kextraversion | "$kextraversion."* ) ;;
 			* ) return 1; ;;
 		esac
 	else
@@ -196,11 +223,9 @@ _get_rel_info_from_tag() {
 			$kextraversion )
 				rel=""
 				;;
-			# Plain version tag plus suffix, eg. 5.17-rc3-*
-			"$kextraversion."* | "$kextraversion-"* )
-				rel=${rel#$kextraversion}
-				rel=${rel#-}
-				rel=${rel#.}
+			# Plain version tag plus suffix, eg. 5.17-rc3.*
+			"$kextraversion."* )
+				rel=${rel#$kextraversion.}
 				;;
 			# Extra tag, eg 5.17-1.rc3*
 			*".$kextraversion"* | *"-$kextraversion"* ) ;;
@@ -208,9 +233,23 @@ _get_rel_info_from_tag() {
 		esac
 	fi
 
-	if [[ $rel ]]; then
-		echo "${rel/-/.}"
+	# If KERNEL_DIST is added as prefix/semi-prefix/suffix, remove it from rel
+	if [[ $KERNEL_DIST ]]; then
+		case $rel in
+			$KERNEL_DIST.*)
+				rel=${rel#$KERNEL_DIST.}
+				;;
+			$kextraversion.$KERNEL_DIST.*)
+				rel=${rel#$kextraversion.$KERNEL_DIST.}
+				rel=$kextraversion.$rel
+				;;
+			*.$KERNEL_DIST)
+				rel=${rel%.$KERNEL_DIST}
+				;;
+		esac
 	fi
+
+	echo "$rel"
 }
 
 _search_for_release_tag() {
@@ -255,7 +294,7 @@ get_kernel_git_version()
 	local upstream=${3:-"@{u}"}
 
 	local last_tag release_tag release_info git_desc
-	local tag
+	local tag tagged
 
 	# Get current commit's snapshot name, format: YYYYMMDDgit<commit>,
 	# or YYYYMMDD (Only if repo is missing, eg. running this script with tarball)
@@ -273,7 +312,8 @@ get_kernel_git_version()
 	fi
 
 	# Get latest git tag of this commit
-	last_tag=$(git -C "$repo" describe --tags --abbrev=0 "$gitref" 2>/dev/null)
+	last_tag=$(_get_last_git_tag_of "$gitref" -C "$repo")
+	tagged=$?
 	# Check and get latest release git tag, in case current tag is a test tag
 	# (eg. current tag is fix_xxxx, rebase_test_xxxx, or user tagged for fun, and previous release tag is 5.18.0-1[.KDIST])
 	if _get_rel_info_from_tag "$last_tag" > /dev/null; then
@@ -289,8 +329,6 @@ get_kernel_git_version()
 	if [[ "$release_tag" ]]; then
 		git_desc=$(git -C "$repo" describe --tags --abbrev=12 "$gitref" 2>/dev/null)
 		release_info=$(_get_rel_info_from_tag "$release_tag")
-		# Remove dist suffix, it'a always added for auto generated tag
-		KGIT_RELEASE=${release_info%".$KDIST"}
 
 		if ! [[ $release_info ]]; then
 			warn "No extra release info in release tag, might be a upstream tag." \
@@ -318,7 +356,7 @@ get_kernel_git_version()
 			KGIT_SUB_RELEASE_NUM=0
 		fi
 
-		if [[ "$release_tag" == "$git_desc" ]]; then
+		if [[ "$tagged" -eq 1 ]] && [[ "$release_tag" == "$last_tag" ]]; then
 			if [[ $release_info ]] && [[ "$KGIT_RELEASE_NUM" -ne 0 ]]; then
 				# This commit is tagged and it's a valid release tag, juse use it
 				KGIT_FORCE_RELEAE=$release_info
@@ -467,8 +505,8 @@ prepare_next_kernel_ver() {
 	fi
 
 	KERNEL_MAJVER="$KVERSION.$KPATCHLEVEL.$KSUBLEVEL"
-	KERNEL_RELVER="$krelease${KDIST:+.$KDIST}"
-	KERNEL_UNAMER="$KERNEL_MAJVER-$KERNEL_RELVER"
+	KERNEL_RELVER="$krelease"
+	KERNEL_UNAMER="$KERNEL_MAJVER-$KERNEL_RELVER${KDIST:+.$KDIST}"
 }
 
 # Get next formal kernel version based on previous git tag
@@ -491,6 +529,6 @@ prepare_next_sub_kernel_ver() {
 	fi
 
 	KERNEL_MAJVER="$KVERSION.$KPATCHLEVEL.$KSUBLEVEL"
-	KERNEL_RELVER="$krelease${KDIST:+.$KDIST}"
-	KERNEL_UNAMER="$KERNEL_MAJVER-$KERNEL_RELVER"
+	KERNEL_RELVER="$krelease"
+	KERNEL_UNAMER="$KERNEL_MAJVER-$KERNEL_RELVER${KDIST:+.$KDIST}"
 }

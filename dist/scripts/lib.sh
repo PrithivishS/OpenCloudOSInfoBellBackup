@@ -47,20 +47,59 @@ die() {
 	exit 1
 }
 
+# $1: relative dir path
+# $2: optional git ref, if not set current worktree is used
+# $3: optional git repo
+ls_repo_dir() {
+	local _path=$1
+	local _gitref=$2
+	local _repo=${3:-$TOPDIR}
+	local _gitshow
+
+	# If git reference is set and git repo is valid, try use the versioned Makefile
+	if [[ "$_gitref" ]]; then
+		if _gitshow=$(git -C "$_repo" show "$_gitref:$_path" 2>/dev/null); then
+			echo "$_gitshow" | tail -n +3
+			return 0
+		fi
+		warn "Failed to ls '$_path' from git reference '$_gitref', using current worktree as build source."
+	fi
+
+	ls -1ap "$_repo/$_path/"
+}
+
+# $1: relative file path
+# $2: optional git ref, if not set current worktree is used
+# $3: optional git repo
+cat_repo_file() {
+	local _path=$1
+	local _gitref=$2
+	local _repo=${3:-$TOPDIR}
+
+	# If git reference is set and git repo is valid, try use the versioned Makefile
+	if [[ "$_gitref" ]]; then
+		if git -C "$_repo" show "$_gitref:$_path" 2>/dev/null; then
+			return 0
+		fi
+		warn "Failed to retrive '$_path' from git reference '$_gitref', using current worktree as build source."
+	fi
+
+	cat "$_repo"/"$1"
+}
+
+# $1: keyword
+# $2: optional git ref, if not set current Makefile is used
+# $3: optional git repo
 get_dist_makefile_var() {
-	local _lib_source=${BASH_SOURCE[0]}
+	local _sedexp="/^$1\s*[:?]?=\s*(.*)/{s/^\s*^$1\s*[:?]?=\s*//;h};\${x;p}"
+	local _gitref=$2
+	local _repo=${3:-$TOPDIR}
 	local _val
 
-	# Just one sed call, fast and simple
-	# Match anyline start with "^$1\s*=\s*", strip and remove matching part then store in hold buffer.
-	# Pprint the hold buffer on exit. This ensure the last assigned value is used, matches Makefile syntax well
-	_val=$(sed -nE -e \
-		"/^$1\s*:?=\s*(.*)/{s/^\s*^$1\s*:?=\s*//;h};\${x;p}" \
-		"$(dirname "$(realpath "$_lib_source")")/../Makefile")
-
+	_val=$(cat_repo_file "dist/Makefile" | sed -nE -e "$_sedexp")
 	case $_val in
 		*\$* )
-			die "Can't parse Makefile variable '$1', which references to other variables."
+			die "Can't parse Makefile variable '$1', it references to other variables."
 			;;
 	esac
 
@@ -74,6 +113,8 @@ get_dist_makefile_var() {
 [ "$DISTDIR" ] || DISTDIR=$TOPDIR/$DISTPATH
 [ "$SOURCEDIR" ] || SOURCEDIR=$DISTDIR/rpm/SOURCES
 [ "$SPEC_ARCH" ] || SPEC_ARCH=$(get_dist_makefile_var SPEC_ARCH)
+# If KDIST is not set (or it's set to "-" wnich is illegal value for KDIST), read from dist Makefile.
+[ "${KDIST--}" == - ] && KDIST=$(get_dist_makefile_var KDIST)
 
 if ! [ -s "$TOPDIR/Makefile" ]; then
 	echo "Dist tools can only be run within a valid Linux Kernel git workspace." >&2
@@ -101,6 +142,9 @@ get_kernel_arch () {
 		riscv64 )
 			echo "riscv"
 			;;
+		loongarch64 )
+			echo "loongarch64"
+			;;
 		arm64 | aarch64 )
 			echo "arm64"
 			;;
@@ -119,6 +163,9 @@ get_kernel_arch () {
 # source code base sub path in arch/
 get_kernel_src_arch () {
 	case $1 in
+		loongarch64 )
+			echo "loongarch"
+			;;
 		riscv64 )
 			echo "riscv"
 			;;

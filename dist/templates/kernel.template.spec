@@ -187,7 +187,6 @@ Source30: check-kabi
 ### Arch speficied kernel configs and kABI
 # Start from Source1000 to Source1199, for kernel config
 # Start from Source1200 to Source1399, for kabi
-# Start from Source1400 to Source1599, for filter-<arch>.sh
 {{ARCHSOURCESPEC}}
 
 ### Userspace tools
@@ -212,6 +211,8 @@ AutoReq: no
 AutoProv: yes
 
 # Kernel requirements
+# installonlypkg(kernel) is a hint for RPM that this package shouldn't be auto-cleaned.
+Provides: installonlypkg(kernel)
 Provides: kernel = %{version}-%{release}
 Provides: %{rpm_name} = %{version}-%{release}
 Requires: %{rpm_name}-core = %{version}-%{release}
@@ -223,11 +224,11 @@ This is the meta package of %{?rpm_vendor:%{rpm_vendor} }Linux kernel, the core 
 
 %if %{with_core}
 ### Kernel core package
-# installonlypkg(kernel) is a hint for RPM that this package shouldn't be auto-cleaned.
 %package core
 Summary: %{rpm_vendor} Linux Kernel
 Provides: installonlypkg(kernel)
 Provides: kernel-core = %{version}-%{release}
+Provides: kernel-uname-r = %{kernel_unamer}
 Requires(pre): coreutils
 Requires(post): coreutils kmod dracut
 Requires(preun): coreutils kmod
@@ -266,10 +267,10 @@ This package provides commonly used kernel modules for the %{?2:%{2}-}core kerne
 %package devel
 Summary: Development package for building kernel modules to match the %{version}-%{release} kernel
 Release: %{release}
-Provides: installonlypkg(kernel-devel)
+Provides: installonlypkg(kernel)
 Provides: kernel-devel = %{version}-%{release}
 Provides: kernel-devel-%{_target_cpu} = %{version}-%{release}
-Provides: kernel-devel-uname-r = %{version}-%{release}
+Provides: kernel-devel-uname-r = %{kernel_unamer}
 AutoReqprov: no
 %description devel
 This package provides kernel headers and makefiles sufficient to build modules
@@ -280,7 +281,7 @@ against the %{version}-%{release} kernel package.
 %package debuginfo
 Summary: Debug information for package %{rpm_name}
 Requires: %{rpm_name}-debuginfo-common-%{_target_cpu}
-Provides: installonlypkg(kernel-debuginfo)
+Provides: installonlypkg(kernel)
 Provides: kernel-debuginfo = %{version}-%{release}
 AutoReqProv: no
 %description debuginfo
@@ -304,7 +305,7 @@ This is required to use SystemTap with %{rpm_name}.
 ### Common debuginfo package
 %package debuginfo-common-%{_target_cpu}
 Summary: Kernel source files used by %{rpm_name}-debuginfo packages
-Provides: installonlypkg(kernel-debuginfo-common)
+Provides: installonlypkg(kernel)
 Provides: kernel-debuginfo-common = %{version}-%{release}
 %description debuginfo-common-%{_target_cpu}
 This package is required by %{rpm_name}-debuginfo subpackages.
@@ -457,7 +458,7 @@ This package provides debug information for the bpftool package.
 
 ### Prepare common build vars to share by %%prep, %%build and %%install section
 # _KernSrc: Path to kernel source, located in _buildir
-# _KernBuild: Path to the built kernel objects, located in _buildir
+# _KernBuild: Path to the built kernel objects, could be same as $_KernSrc (just like source points to build under /lib/modules/<kver>)
 # _KernVmlinuxH: path to vmlinux.h for BTF, located in _buildir
 # KernUnameR: Get `uname -r` output of the built kernel
 # KernExtVer: Kernel EXTRAVERSION plus debug/kasan/syzkaller marker
@@ -555,12 +556,15 @@ sed -i "/^SUBLEVEL/cSUBLEVEL = $(echo %{kernel_majver} | cut -d '.' -f 3)" $_Ker
 BuildConfig() {
 	mkdir -p $_KernBuild
 	pushd $_KernBuild
-
 	cp $1 .config
-	echo "include $_KernSrc/Makefile" > Makefile
+
+	[ "$_KernBuild" != "$_KernSrc" ] && echo "include $_KernSrc/Makefile" > Makefile
 
 	# Ensures build-ids are unique to allow parallel debuginfo
 	sed -i -e "s/^CONFIG_BUILD_SALT.*/CONFIG_BUILD_SALT=\"$KernUnameR\"/" .config
+
+	# Erase LOCALVERSION to prevent it from mucking with our version numbers
+	sed -i -e 's/^CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=""/' .config
 
 	# Call olddefconfig before make all, set all unset config to default value.
 	# The packager uses CROSS_COMPILE=scripts/dummy-tools for generating .config
@@ -612,10 +616,13 @@ BuildKernel() {
 		%{host_make} -C $_KernSrc/tools/bpf/bpftool/ VMLINUX_BTF= VMLINUX_H=
 		# Prefer to extract the vmlinux.h from the vmlinux that were just compiled
 		# fallback to use host's vmlinux
-		if grep -q "CONFIG_DEBUG_INFO_BTF=y" ".config"; then
-			$_KernSrc/tools/bpf/bpftool/bpftool btf dump file vmlinux format c > $_KernVmlinuxH
-		else
-			$_KernSrc/tools/bpf/bpftool/bpftool btf dump file /sys/kernel/btf/vmlinux format c > $_KernVmlinuxH
+		# Skip this if bpftools is too old and doesn't support BTF dump
+		if $_KernSrc/tools/bpf/bpftool/bpftool btf help 2>&1 | grep -q "\bdump\b"; then
+			if grep -q "CONFIG_DEBUG_INFO_BTF=y" ".config"; then
+				$_KernSrc/tools/bpf/bpftool/bpftool btf dump file vmlinux format c > $_KernVmlinuxH
+			else
+				$_KernSrc/tools/bpf/bpftool/bpftool btf dump file /sys/kernel/btf/vmlinux format c > $_KernVmlinuxH
+			fi
 		fi
 		%{host_make} -C $_KernSrc/tools/bpf/bpftool/ clean
 	fi
@@ -746,6 +753,10 @@ InstKernelBasic() {
 
 	%ifarch x86_64
 	install -m 644 $_KernBuild/arch/x86/boot/bzImage vmlinuz
+	%endif
+
+	%ifarch loongarch64
+	install -m 644 $_KernBuild/vmlinuz vmlinuz
 	%endif
 
 	install -m 644 vmlinuz %{buildroot}/boot/vmlinuz-$KernUnameR
@@ -936,8 +947,7 @@ CollectKernelFile() {
 	# Do module splitting, filter-modules.sh will generate a list of
 	# modules to be split into external module package
 	# Rest of the modules stay in core package
-	echo "%dir /lib/modules/$KernUnameR/" >> modules.list
-	%SOURCE10 "%{buildroot}" "$KernUnameR" "%{_target_cpu}" "$_KernBuild/System.map" >> modules.list || exit $?
+	%SOURCE10 "%{buildroot}" "$KernUnameR" "%{_target_cpu}" "$_KernBuild/System.map" non-core-modules >> modules.list || exit $?
 
 	comm -23 core.list modules.list > core.list.tmp
 	mv core.list.tmp core.list
@@ -945,7 +955,8 @@ CollectKernelFile() {
 	popd
 
 	# Make these file list usable in rpm build dir
-	mv %{buildroot}/{core.list,modules.list} ../
+	mv %{buildroot}/core.list ../
+	mv %{buildroot}/modules.list ../
 }
 
 ###### Start Kernel Install
@@ -1031,6 +1042,9 @@ if command -v uname > /dev/null; then
 	fi
 fi
 
+%post core
+touch %{_localstatedir}/lib/rpm-state/%{rpm_name}-%{rpm_version}-%{rpm_release}%{?dist}.installing_core
+
 %posttrans core
 # Weak modules
 if command -v weak-modules > /dev/null; then
@@ -1045,31 +1059,10 @@ elif command -v new-kernel-pkg > /dev/null; then
 else
 	echo "NOTICE: No available kernel install handler found. Please make sure boot loader and initramfs are properly configured after the installation." > /dev/stderr
 fi
-
-# If match, the selinux will be disabled.
-is_set_selinux=0
-if [ -e /proc/config.gz ]; then
-    zcat /proc/config.gz | grep -q "^CONFIG_SECURITY_SELINUX=y"
-    is_set_selinux=$?
-elif [ -e /boot/config-$(uname -r) ]; then
-    cat /boot/config-$(uname -r) | grep -q "^CONFIG_SECURITY_SELINUX=y"
-    is_set_selinux=$?
-elif [ -e /proc/kallsyms ]; then
-    cat /proc/kallsyms | grep -q " selinux_init$"
-    is_set_selinux=$?
-else
-    echo "Ignore selinux adjustments"
-fi
-
-# if CONFIG_SECURITY_SELINUX is not set, we should disable selinux.
-[ $is_set_selinux -ne 0 ] && {
-    echo "Selinux is not supported by current running kernel, disabling SELinux globally to avoid potential system failure."
-    echo "Please update /etc/selinux/config manually after testing SELinux functionality. Now setting SELINUX=disabled"
-    grep -q "^SELINUX *= *.*$" /etc/selinux/config && sed -ri "s/^ *SELINUX *= *enforcing *$/SELINUX=disabled/" /etc/selinux/config || echo "SELINUX=disabled" >> /etc/selinux/config
-}
-
 # Just in case kernel-install didn't depmod
 depmod -A %{kernel_unamer}
+# Core install done
+rm -f %{_localstatedir}/lib/rpm-state/%{rpm_name}-%{rpm_version}-%{rpm_release}%{?dist}.installing_core
 
 %preun core
 # Boot entry and depmod files
@@ -1089,6 +1082,15 @@ fi
 ### Module package
 %post modules
 depmod -a %{kernel_unamer}
+if [ ! -f %{_localstatedir}/lib/rpm-state/%{rpm_name}-%{rpm_version}-%{rpm_release}%{?dist}.installing_core ]; then
+	touch %{_localstatedir}/lib/rpm-state/%{rpm_name}-%{rpm_version}-%{rpm_release}%{?dist}.need_to_run_dracut
+fi
+
+%posttrans modules
+if [ -f %{_localstatedir}/lib/rpm-state/%{rpm_name}-%{rpm_version}-%{rpm_release}%{?dist}.need_to_run_dracut ]; then\
+	dracut -f --kver "%{kernel_unamer}"
+	rm -f %{_localstatedir}/lib/rpm-state/%{rpm_name}-%{rpm_version}-%{rpm_release}%{?dist}.need_to_run_dracut
+fi
 
 %postun modules
 depmod -a %{kernel_unamer}
@@ -1225,8 +1227,7 @@ fi
 %{_bindir}/iio_generic_buffer
 %{_bindir}/lsiio
 %{_bindir}/lsgpio
-%{_bindir}/gpio-hammer
-%{_bindir}/gpio-event-mon
+%{_bindir}/gpio-*
 %{_bindir}/page_owner_sort
 %{_bindir}/slabinfo
 
@@ -1252,18 +1253,8 @@ fi
 %defattr(-,root,root)
 %{_sbindir}/bpftool
 %{_sysconfdir}/bash_completion.d/bpftool
-%{_mandir}/man8/bpftool-cgroup.8.gz
-%{_mandir}/man8/bpftool-gen.8.gz
-%{_mandir}/man8/bpftool-iter.8.gz
-%{_mandir}/man8/bpftool-link.8.gz
-%{_mandir}/man8/bpftool-map.8.gz
-%{_mandir}/man8/bpftool-prog.8.gz
-%{_mandir}/man8/bpftool-perf.8.gz
 %{_mandir}/man8/bpftool.8.gz
-%{_mandir}/man8/bpftool-net.8.gz
-%{_mandir}/man8/bpftool-feature.8.gz
-%{_mandir}/man8/bpftool-btf.8.gz
-%{_mandir}/man8/bpftool-struct_ops.8.gz
+%{_mandir}/man8/bpftool-*.8.gz
 %{_mandir}/man7/bpf-helpers.7.gz
 
 %if %{with_debuginfo}
