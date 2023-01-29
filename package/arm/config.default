@@ -2577,7 +2577,7 @@ CONFIG_IAVF=m
 CONFIG_I40EVF=m
 # CONFIG_ICE is not set
 CONFIG_FM10K=m
-# CONFIG_IGC is not set
+CONFIG_IGC=m
 # CONFIG_JME is not set
 # CONFIG_NET_VENDOR_MARVELL is not set
 CONFIG_NET_VENDOR_MELLANOX=y
@@ -3876,7 +3876,7 @@ CONFIG_DRM_AMD_DC=y
 # end of Display Engine Configuration
 
 # CONFIG_HSA_AMD is not set
-# CONFIG_DRM_NOUVEAU is not set
+CONFIG_DRM_NOUVEAU=m
 # CONFIG_DRM_VGEM is not set
 # CONFIG_DRM_VKMS is not set
 CONFIG_DRM_UDL=m
