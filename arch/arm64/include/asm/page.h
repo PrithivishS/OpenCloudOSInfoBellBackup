@@ -12,13 +12,29 @@
 
 #ifndef __ASSEMBLY__
 
+#include <linux/hardirq.h>
 #include <linux/personality.h> /* for READ_IMPLIES_EXEC */
 #include <asm/pgtable-types.h>
 
 extern void __cpu_clear_user_page(void *p, unsigned long user);
 extern void __cpu_copy_user_page(void *to, const void *from,
 				 unsigned long user);
-extern void copy_page(void *to, const void *from);
+extern void slow_copy_page(void *to, const void *from);
+#ifdef CONFIG_KERNEL_MODE_NEON
+extern void fast_copy_page(void *to, const void *from);
+static inline void copy_page(void *to, const void *from)
+{
+	if (unlikely(in_interrupt()))
+		slow_copy_page(to, from);
+	else
+		fast_copy_page(to, from);
+}
+#else
+static inline void copy_page(void *to, const void *from)
+{
+	slow_copy_page(to, from);
+}
+#endif
 extern void clear_page(void *to);
 
 #define clear_user_page(addr,vaddr,pg)  __cpu_clear_user_page(addr, vaddr)
