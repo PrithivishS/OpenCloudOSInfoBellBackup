@@ -10,6 +10,7 @@
 
 #include <asm/page.h>
 #include <asm/cacheflush.h>
+#include <trace/events/kmem.h>
 
 void __cpu_copy_user_page(void *kto, const void *kfrom, unsigned long vaddr)
 {
@@ -24,3 +25,12 @@ void __cpu_clear_user_page(void *kaddr, unsigned long vaddr)
 	clear_page(kaddr);
 }
 EXPORT_SYMBOL_GPL(__cpu_clear_user_page);
+
+DEFINE_STATIC_KEY_FALSE(fast_copy_page_enabled);
+EXPORT_SYMBOL_GPL(fast_copy_page_enabled);
+void fast_copy_page_switched(const void *from, void *to)
+{
+	trace_mm_fast_copy_page_switched((unsigned long)from,
+					(unsigned long)to);
+}
+EXPORT_SYMBOL_GPL(fast_copy_page_switched);
