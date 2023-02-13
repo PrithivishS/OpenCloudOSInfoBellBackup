@@ -329,7 +329,7 @@ static void cec_post_state_event(struct cec_adapter *adap)
  *
  * This function is called with adap->lock held.
  */
-static void cec_data_completed(struct cec_data *data)
+static int cec_data_completed(struct cec_data *data)
 {
 	/*
 	 * Delete this transmit from the filehandle's xfer_list since
@@ -357,7 +357,9 @@ static void cec_data_completed(struct cec_data *data)
 		if (data->fh)
 			cec_queue_msg_fh(data->fh, &data->msg);
 		kfree(data);
+		return -EPERM;
 	}
+	return 0;
 }
 
 /*
@@ -367,7 +369,7 @@ static void cec_data_completed(struct cec_data *data)
  *
  * This function is called with adap->lock held.
  */
-static void cec_data_cancel(struct cec_data *data, u8 tx_status)
+static int cec_data_cancel(struct cec_data *data, u8 tx_status)
 {
 	/*
 	 * It's either the current transmit, or it is a pending
@@ -396,7 +398,7 @@ static void cec_data_cancel(struct cec_data *data, u8 tx_status)
 	/* Queue transmitted message for monitoring purposes */
 	cec_queue_msg_monitor(data->adap, &data->msg, 1);
 
-	cec_data_completed(data);
+	return cec_data_completed(data);
 }
 
 /*
@@ -748,6 +750,7 @@ int cec_transmit_msg_fh(struct cec_adapter *adap, struct cec_msg *msg,
 {
 	struct cec_data *data;
 	bool is_raw = msg_is_raw(msg);
+	int ret = 0;
 
 	msg->rx_ts = 0;
 	msg->tx_ts = 0;
@@ -914,11 +917,13 @@ int cec_transmit_msg_fh(struct cec_adapter *adap, struct cec_msg *msg,
 
 	/* Cancel the transmit if it was interrupted */
 	if (!data->completed)
-		cec_data_cancel(data, CEC_TX_STATUS_ABORTED);
+		ret = cec_data_cancel(data, CEC_TX_STATUS_ABORTED);
 
 	/* The transmit completed (possibly with an error) */
-	*msg = data->msg;
-	kfree(data);
+	if (!ret) {
+		*msg = data->msg;
+		kfree(data);
+	}
 	return 0;
 }
 

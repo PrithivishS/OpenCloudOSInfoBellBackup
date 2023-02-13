@@ -470,6 +470,7 @@ out_del:
 	kobject_del(entry->child);
 out_free:
 	kfree(entry->child);
+	entry->child = NULL;
 	return ret;
 }
 
