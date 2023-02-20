@@ -48,6 +48,19 @@ struct fault_info {
 	const char *name;
 };
 
+#ifdef CONFIG_KERNEL_MODE_NEON
+void pagefault_disable_wrap(void)
+{
+	pagefault_disable();
+}
+EXPORT_SYMBOL(pagefault_disable_wrap);
+void pagefault_enable_wrap(void)
+{
+	pagefault_enable();
+}
+EXPORT_SYMBOL(pagefault_enable_wrap);
+#endif
+
 static const struct fault_info fault_info[];
 static struct fault_info debug_fault_info[];
 
@@ -519,7 +532,6 @@ retry:
 		}
 #endif
 	}
-
 	fault = __do_page_fault(mm, addr, mm_flags, vm_flags);
 	major |= fault & VM_FAULT_MAJOR;
 
