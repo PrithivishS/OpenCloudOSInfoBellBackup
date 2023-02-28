@@ -55,6 +55,7 @@ static int setup_dtb(struct kimage *image,
 		     char *cmdline, void *dtb)
 {
 	int off, ret;
+	uint64_t size;
 
 	ret = fdt_path_offset(dtb, "/chosen");
 	if (ret < 0)
@@ -85,6 +86,21 @@ static int setup_dtb(struct kimage *image,
 				crashk_res.end - crashk_res.start + 1);
 		if (ret)
 			return (ret == -FDT_ERR_NOSPACE ? -ENOMEM : -EINVAL);
+
+		if (crashk_low_res.end != crashk_low_res.start) {
+			/* add linux,usable-memory-range for low res */
+			size = crashk_low_res.end - crashk_low_res.start + 1;
+			ret = fdt_appendprop_addrrange(dtb, 0, off,
+					FDT_PROP_MEM_RANGE,
+					crashk_low_res.start,
+					size);
+			if (ret) {
+				if (ret == -FDT_ERR_NOSPACE)
+					return -ENOMEM;
+
+				return -EINVAL;
+			}
+		}
 	}
 
 	/* add bootargs */
@@ -128,6 +144,7 @@ static int setup_dtb(struct kimage *image,
 
 	if (rng_is_initialized()) {
 		u64 seed = get_random_u64();
+
 		ret = fdt_setprop_u64(dtb, off, FDT_PROP_KASLR_SEED, seed);
 		if (ret)
 			goto out;
@@ -139,6 +156,7 @@ static int setup_dtb(struct kimage *image,
 	/* add rng-seed */
 	if (rng_is_initialized()) {
 		u8 rng_seed[RNG_SEED_SIZE];
+
 		get_random_bytes(rng_seed, RNG_SEED_SIZE);
 		ret = fdt_setprop(dtb, off, FDT_PROP_RNG_SEED, rng_seed,
 				RNG_SEED_SIZE);
@@ -237,6 +255,12 @@ static int prepare_elf_headers(void **addr, unsigned long *sz)
 
 	/* Exclude crashkernel region */
 	ret = crash_exclude_mem_range(cmem, crashk_res.start, crashk_res.end);
+
+	if (crashk_low_res.end != crashk_low_res.start) {
+		/* Exclude crashkernel region for low */
+		ret = crash_exclude_mem_range(cmem, crashk_res.start,
+				crashk_res.end);
+	}
 
 	if (!ret)
 		ret =  crash_prepare_elf64_headers(cmem, true, addr, sz);
