@@ -4824,9 +4824,20 @@ queue_and_out:
 		if (skb_queue_len(&sk->sk_receive_queue) == 0)
 			sk_forced_mem_schedule(sk, skb->truesize);
 		else if (tcp_try_rmem_schedule(sk, skb, skb->truesize)) {
+#ifdef CONFIG_TCP_WND_SHRINK
+			if (sock_flag(sk, SOCK_NO_MEM)) {
+				NET_INC_STATS(sock_net(sk),
+					      LINUX_MIB_TCPRCVQDROP);
+				sk->sk_data_ready(sk);
+				goto out_of_window;
+			}
+			sk_forced_mem_schedule(sk, skb->truesize);
+			sock_set_flag(sk, SOCK_NO_MEM);
+#else
 			NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPRCVQDROP);
 			sk->sk_data_ready(sk);
 			goto drop;
+#endif
 		}
 
 		eaten = tcp_queue_rcv(sk, skb, &fragstolen);
@@ -4867,7 +4878,9 @@ out_of_window:
 		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPOOWDROP);
 		tcp_enter_quickack_mode(sk, TCP_MAX_QUICKACKS);
 		inet_csk_schedule_ack(sk);
+#ifndef CONFIG_TCP_WND_SHRINK
 drop:
+#endif
 		tcp_drop(sk, skb);
 		return;
 	}

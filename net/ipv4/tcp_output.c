@@ -301,6 +301,15 @@ static u16 tcp_select_window(struct sock *sk)
 		NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPFROMZEROWINDOWADV);
 	}
 
+#ifdef CONFIG_TCP_WND_SHRINK
+	if (sock_flag(sk, SOCK_NO_MEM)) {
+		if (sk_memory_allocated(sk) < sk_prot_mem_limits(sk, 2))
+			sock_reset_flag(sk, SOCK_NO_MEM);
+		else
+			new_win = 0;
+	}
+#endif
+
 	return new_win;
 }
 
