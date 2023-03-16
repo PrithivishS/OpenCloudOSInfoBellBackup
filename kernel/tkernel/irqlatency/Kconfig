@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config IRQ_LATENCY
+	tristate "irq latency debug"
+	depends on STACKTRACE
+	depends on X86
+	default y
+	help
+	  This option adds support for irq latency debug.

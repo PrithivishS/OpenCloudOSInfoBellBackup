@@ -4,6 +4,7 @@ config KPATCH
 	depends on DYNAMIC_FTRACE_WITH_REGS
 	depends on MODULES
 	depends on SYSFS
+	depends on ARM64
 	help
 	  Say M here if you want to support kernel kpatch.
 	  This option has no runtime impact until a kernel "patch"
