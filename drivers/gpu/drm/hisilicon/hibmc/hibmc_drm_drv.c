@@ -280,21 +280,27 @@ static int hibmc_load(struct drm_device *dev)
 	priv->dev = dev;
 
 	ret = hibmc_hw_init(priv);
-	if (ret)
+	if (ret) {
+		DRM_ERROR("failed to initialize hw: %d\n", ret);
 		goto err;
+	}
 
 	ret = hibmc_mm_init(priv);
-	if (ret)
+	if (ret) {
+		DRM_ERROR("failed to initialize mm: %d\n", ret);
 		goto err;
+	}
 
 	ret = hibmc_kms_init(priv);
-	if (ret)
-		goto err;
+	if (ret) {
+		DRM_ERROR("failed to initialize kms: %d\n", ret);
+		goto kms_err;
+	}
 
 	ret = drm_vblank_init(dev, dev->mode_config.num_crtc);
 	if (ret) {
 		DRM_ERROR("failed to initialize vblank: %d\n", ret);
-		goto err;
+		goto vblank_err;
 	}
 
 	priv->msi_enabled = 0;
@@ -314,14 +320,23 @@ static int hibmc_load(struct drm_device *dev)
 	ret = hibmc_fbdev_init(priv);
 	if (ret) {
 		DRM_ERROR("failed to initialize fbdev: %d\n", ret);
-		goto err;
+		goto fbdev_err;
 	}
 
 	return 0;
 
+fbdev_err:
+	drm_atomic_helper_shutdown(dev);
+	if (dev->irq_enabled)
+		drm_irq_uninstall(dev);
+	if (priv->msi_enabled)
+		pci_disable_msi(dev->pdev);
+
+vblank_err:
+	hibmc_kms_fini(priv);
+kms_err:
+	hibmc_mm_fini(priv);
 err:
-	hibmc_unload(dev);
-	DRM_ERROR("failed to initialize drm driver: %d\n", ret);
 	return ret;
 }
 
