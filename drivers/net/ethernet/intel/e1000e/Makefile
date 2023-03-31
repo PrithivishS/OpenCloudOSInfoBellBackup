@@ -1,13 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0
-# Copyright(c) 1999 - 2018 Intel Corporation.
-
 #
-# Makefile for the Intel(R) PRO/1000 ethernet driver
+# Makefile for the Intel network device drivers.
 #
 
-obj-$(CONFIG_E1000E) += e1000e.o
-
-e1000e-objs := 82571.o ich8lan.o 80003es2lan.o \
-	       mac.o manage.o nvm.o phy.o \
-	       param.o ethtool.o netdev.o ptp.o
-
+ifdef CONFIG_X86
+obj-$(CONFIG_E1000E) += intel/
+else
+obj-$(CONFIG_E1000E) += linux/
+endif
