@@ -2089,6 +2089,12 @@ W:	http://hackndev.com
 S:	Maintained
 F:	arch/arm/mach-pxa/palmz72.*
 
+ARM/PHYTIUM SOC SUPPORT
+M:	Chen Baozi <chenbaozi@phytium.com.cn>
+S:	Maintained
+W:	https://www.phytium.com.cn
+F:	arch/arm64/boot/dts/phytium/*
+
 ARM/PLEB SUPPORT
 M:	Peter Chubb <pleb@gelato.unsw.edu.au>
 W:	http://www.disy.cse.unsw.edu.au/Hardware/PLEB
