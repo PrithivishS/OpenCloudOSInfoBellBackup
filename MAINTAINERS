@@ -2094,6 +2094,8 @@ M:	Chen Baozi <chenbaozi@phytium.com.cn>
 S:	Maintained
 W:	https://www.phytium.com.cn
 F:	arch/arm64/boot/dts/phytium/*
+F:	Documentation/devicetree/bindings/net/can/phytium-can.txt
+F:	drivers/net/can/phytium/*
 
 ARM/PLEB SUPPORT
 M:	Peter Chubb <pleb@gelato.unsw.edu.au>

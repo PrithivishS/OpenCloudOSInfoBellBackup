@@ -1,0 +1,10 @@
+--- MAINTAINERS
++++ MAINTAINERS
+@@ -1856,6 +1856,7 @@ F:	Documentation/devicetree/bindings/spi/spi-phytium.txt
+ W:     https://www.phytium.com.cn
+ F:     arch/arm64/boot/dts/phytium/*
+ F:     Documentation/devicetree/bindings/net/can/phytium-can.txt
++F:	drivers/net/can/phytium/*
+ 
+ ARM/PLEB SUPPORT
+ M:     Peter Chubb <pleb@gelato.unsw.edu.au>
