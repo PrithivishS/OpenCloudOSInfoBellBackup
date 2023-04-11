@@ -301,6 +301,15 @@ static u16 tcp_select_window(struct sock *sk)
 		NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPFROMZEROWINDOWADV);
 	}
 
+#ifdef CONFIG_TCP_WND_SHRINK
+	if (sock_flag(sk, SOCK_NO_MEM)) {
+		if (sk_memory_allocated(sk) < sk_prot_mem_limits(sk, 2))
+			sock_reset_flag(sk, SOCK_NO_MEM);
+		else
+			new_win = 0;
+	}
+#endif
+
 	return new_win;
 }
 
@@ -3870,14 +3879,13 @@ int tcp_write_wakeup(struct sock *sk, int mib)
 void tcp_send_probe0(struct sock *sk)
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);
-	struct tcp_sock *tp = tcp_sk(sk);
 	struct net *net = sock_net(sk);
 	unsigned long timeout;
 	int err;
 
 	err = tcp_write_wakeup(sk, LINUX_MIB_TCPWINPROBE);
 
-	if (tp->packets_out || tcp_write_queue_empty(sk)) {
+	if (!tcp_probe0_needed(sk)) {
 		/* Cancel probe timer, if it is not required. */
 		icsk->icsk_probes_out = 0;
 		icsk->icsk_backoff = 0;

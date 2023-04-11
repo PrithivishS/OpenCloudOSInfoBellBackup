@@ -3028,6 +3028,17 @@ void tcp_rearm_rto(struct sock *sk)
 /* Try to schedule a loss probe; if that doesn't work, then schedule an RTO. */
 static void tcp_set_xmit_timer(struct sock *sk)
 {
+#ifdef CONFIG_TCP_WND_SHRINK
+	struct inet_connection_sock *icsk = inet_csk(sk);
+
+	/* Check if we are already in probe0 state, which means it's
+	 * not needed to schedule the RTO. The normal probe0 can't reach
+	 * here, so it must be window-shrink probe0 case here.
+	 */
+	if (icsk->icsk_pending == ICSK_TIME_PROBE0)
+		return;
+#endif
+
 	if (!tcp_schedule_loss_probe(sk, true))
 		tcp_rearm_rto(sk);
 }
@@ -3303,6 +3314,34 @@ static void tcp_ack_probe(struct sock *sk)
 				     when, TCP_RTO_MAX, NULL);
 	}
 }
+
+#ifdef CONFIG_TCP_WND_SHRINK
+static void tcp_ack_probe_shrink(struct sock *sk)
+{
+	struct inet_connection_sock *icsk = inet_csk(sk);
+	unsigned long when;
+
+	if (!tcp_probe0_needed(sk)) {
+		/* check if recover from window shrink */
+		if (icsk->icsk_pending != ICSK_TIME_PROBE0)
+			return;
+
+		icsk->icsk_backoff = 0;
+		icsk->icsk_probes_tstamp = 0;
+		inet_csk_clear_xmit_timer(sk, ICSK_TIME_PROBE0);
+		if (!tcp_rtx_queue_empty(sk))
+			tcp_retransmit_timer(sk);
+	} else {
+		when = tcp_probe0_when(sk, TCP_RTO_MAX);
+
+		when = tcp_clamp_probe0_to_user_timeout(sk, when);
+		tcp_reset_xmit_timer(sk, ICSK_TIME_PROBE0,
+				     when, TCP_RTO_MAX, NULL);
+	}
+}
+#else
+static void tcp_ack_probe_shrink(struct sock *sk) { }
+#endif
 
 static inline bool tcp_ack_is_dubious(const struct sock *sk, const int flag)
 {
@@ -3737,6 +3776,7 @@ static int tcp_ack(struct sock *sk, const struct sk_buff *skb, int flag)
 	if ((flag & FLAG_FORWARD_PROGRESS) || !(flag & FLAG_NOT_DUP))
 		sk_dst_confirm(sk);
 
+	tcp_ack_probe_shrink(sk);
 	delivered = tcp_newly_delivered(sk, delivered, flag);
 	lost = tp->lost - lost;			/* freshly marked lost */
 	rs.is_ack_delayed = !!(flag & FLAG_ACK_MAYBE_DELAYED);
@@ -4824,9 +4864,20 @@ queue_and_out:
 		if (skb_queue_len(&sk->sk_receive_queue) == 0)
 			sk_forced_mem_schedule(sk, skb->truesize);
 		else if (tcp_try_rmem_schedule(sk, skb, skb->truesize)) {
+#ifdef CONFIG_TCP_WND_SHRINK
+			if (sock_flag(sk, SOCK_NO_MEM)) {
+				NET_INC_STATS(sock_net(sk),
+					      LINUX_MIB_TCPRCVQDROP);
+				sk->sk_data_ready(sk);
+				goto out_of_window;
+			}
+			sk_forced_mem_schedule(sk, skb->truesize);
+			sock_set_flag(sk, SOCK_NO_MEM);
+#else
 			NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPRCVQDROP);
 			sk->sk_data_ready(sk);
 			goto drop;
+#endif
 		}
 
 		eaten = tcp_queue_rcv(sk, skb, &fragstolen);
@@ -4867,7 +4918,9 @@ out_of_window:
 		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPOOWDROP);
 		tcp_enter_quickack_mode(sk, TCP_MAX_QUICKACKS);
 		inet_csk_schedule_ack(sk);
+#ifndef CONFIG_TCP_WND_SHRINK
 drop:
+#endif
 		tcp_drop(sk, skb);
 		return;
 	}

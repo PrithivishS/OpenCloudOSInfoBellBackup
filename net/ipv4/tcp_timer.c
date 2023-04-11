@@ -374,11 +374,9 @@ static void tcp_delack_timer(struct timer_list *t)
 static void tcp_probe_timer(struct sock *sk)
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);
-	struct sk_buff *skb = tcp_send_head(sk);
-	struct tcp_sock *tp = tcp_sk(sk);
 	int max_probes;
 
-	if (tp->packets_out || !skb) {
+	if (!tcp_probe0_needed(sk)) {
 		icsk->icsk_probes_out = 0;
 		icsk->icsk_probes_tstamp = 0;
 		return;

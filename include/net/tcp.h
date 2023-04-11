@@ -672,6 +672,8 @@ int tcp_mss_to_mtu(struct sock *sk, int mss);
 void tcp_mtup_init(struct sock *sk);
 void tcp_init_buffer_space(struct sock *sk);
 
+static inline bool tcp_probe0_needed(const struct sock *sk);
+
 static inline void tcp_bound_rto(const struct sock *sk)
 {
 	if (inet_csk(sk)->icsk_rto > TCP_RTO_MAX)
@@ -1347,7 +1349,7 @@ static inline unsigned long tcp_probe0_when(const struct sock *sk,
 
 static inline void tcp_check_probe_timer(struct sock *sk)
 {
-	if (!tcp_sk(sk)->packets_out && !inet_csk(sk)->icsk_pending)
+	if (tcp_probe0_needed(sk) && !inet_csk(sk)->icsk_pending)
 		tcp_reset_xmit_timer(sk, ICSK_TIME_PROBE0,
 				     tcp_probe0_base(sk), TCP_RTO_MAX,
 				     NULL);
@@ -1828,6 +1830,32 @@ static inline bool tcp_rtx_and_write_queues_empty(const struct sock *sk)
 {
 	return tcp_rtx_queue_empty(sk) && tcp_write_queue_empty(sk);
 }
+
+#ifdef CONFIG_TCP_WND_SHRINK
+/* check if 0 window probe is need by the sk */
+static inline bool tcp_probe0_needed(const struct sock *sk)
+{
+	struct sk_buff *rtx_head = tcp_rtx_queue_head(sk);
+	struct sk_buff *head = tcp_send_head(sk);
+	const struct tcp_sock *tp = tcp_sk(sk);
+
+	if (rtx_head) {
+		if (after(TCP_SKB_CB(rtx_head)->end_seq, tcp_wnd_end(tp)))
+			return true;
+	} else {
+		if (head && after(TCP_SKB_CB(head)->end_seq,
+				  tcp_wnd_end(tp)))
+			return true;
+	}
+
+	return false;
+}
+#else
+static inline bool tcp_probe0_needed(const struct sock *sk)
+{
+	return !tcp_sk(sk)->packets_out && !tcp_write_queue_empty(sk);
+}
+#endif
 
 static inline void tcp_add_write_queue_tail(struct sock *sk, struct sk_buff *skb)
 {
