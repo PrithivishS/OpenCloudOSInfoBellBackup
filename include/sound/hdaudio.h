@@ -343,6 +343,7 @@ struct hdac_bus {
 
 	int poll_count;
 
+	bool cmd_resend:1;              /* command resend */
 	int bdl_pos_adj;		/* BDL position adjustment */
 
 	/* locks */

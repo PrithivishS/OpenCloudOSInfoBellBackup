@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 snd-hda-intel-objs := hda_intel.o
+snd-hda-phytium-objs := hda_phytium.o
 snd-hda-tegra-objs := hda_tegra.o
 
 snd-hda-codec-y := hda_bind.o hda_codec.o hda_jack.o hda_auto_parser.o hda_sysfs.o
@@ -47,4 +48,5 @@ obj-$(CONFIG_SND_HDA_CODEC_HDMI) += snd-hda-codec-hdmi.o
 # otherwise the codec patches won't be hooked before the PCI probe
 # when built in kernel
 obj-$(CONFIG_SND_HDA_INTEL) += snd-hda-intel.o
+obj-$(CONFIG_SND_HDA_PHYTIUM) += snd-hda-phytium.o
 obj-$(CONFIG_SND_HDA_TEGRA) += snd-hda-tegra.o
