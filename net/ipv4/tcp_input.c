@@ -3316,12 +3316,24 @@ static void tcp_ack_probe(struct sock *sk)
 }
 
 #ifdef CONFIG_TCP_WND_SHRINK
+/**
+ * This function is called only when there are packets in the rtx queue,
+ * which means that the packets out is not 0.
+ *
+ * NOTE: we only handle window shrink case in this part.
+ */
 static void tcp_ack_probe_shrink(struct sock *sk)
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	unsigned long when;
 
-	if (!tcp_probe0_needed(sk)) {
+	if (tcp_rtx_overflow(sk)) {
+		when = tcp_probe0_when(sk, TCP_RTO_MAX);
+
+		when = tcp_clamp_probe0_to_user_timeout(sk, when);
+		tcp_reset_xmit_timer(sk, ICSK_TIME_PROBE0,
+				     when, TCP_RTO_MAX, NULL);
+	} else {
 		/* check if recover from window shrink */
 		if (icsk->icsk_pending != ICSK_TIME_PROBE0)
 			return;
@@ -3331,12 +3343,6 @@ static void tcp_ack_probe_shrink(struct sock *sk)
 		inet_csk_clear_xmit_timer(sk, ICSK_TIME_PROBE0);
 		if (!tcp_rtx_queue_empty(sk))
 			tcp_retransmit_timer(sk);
-	} else {
-		when = tcp_probe0_when(sk, TCP_RTO_MAX);
-
-		when = tcp_clamp_probe0_to_user_timeout(sk, when);
-		tcp_reset_xmit_timer(sk, ICSK_TIME_PROBE0,
-				     when, TCP_RTO_MAX, NULL);
 	}
 }
 #else

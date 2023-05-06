@@ -1831,29 +1831,35 @@ static inline bool tcp_rtx_and_write_queues_empty(const struct sock *sk)
 	return tcp_rtx_queue_empty(sk) && tcp_write_queue_empty(sk);
 }
 
+static inline bool __tcp_probe0_needed(const struct sock *sk)
+{
+	return !tcp_sk(sk)->packets_out && !tcp_write_queue_empty(sk);
+}
+
 #ifdef CONFIG_TCP_WND_SHRINK
+
+static inline bool tcp_rtx_overflow(const struct sock *sk)
+{
+	struct sk_buff *rtx_head = tcp_rtx_queue_head(sk);
+
+	return rtx_head && after(TCP_SKB_CB(rtx_head)->end_seq,
+				 tcp_wnd_end(tcp_sk(sk)));
+}
+
 /* check if 0 window probe is need by the sk */
 static inline bool tcp_probe0_needed(const struct sock *sk)
 {
-	struct sk_buff *rtx_head = tcp_rtx_queue_head(sk);
-	struct sk_buff *head = tcp_send_head(sk);
-	const struct tcp_sock *tp = tcp_sk(sk);
+	/* for the normal case */
+	if (__tcp_probe0_needed(sk))
+		return true;
 
-	if (rtx_head) {
-		if (after(TCP_SKB_CB(rtx_head)->end_seq, tcp_wnd_end(tp)))
-			return true;
-	} else {
-		if (head && after(TCP_SKB_CB(head)->end_seq,
-				  tcp_wnd_end(tp)))
-			return true;
-	}
-
-	return false;
+	/* for the window shrink case */
+	return tcp_rtx_overflow(sk);
 }
 #else
 static inline bool tcp_probe0_needed(const struct sock *sk)
 {
-	return !tcp_sk(sk)->packets_out && !tcp_write_queue_empty(sk);
+	return __tcp_probe0_needed(sk);
 }
 #endif
 
