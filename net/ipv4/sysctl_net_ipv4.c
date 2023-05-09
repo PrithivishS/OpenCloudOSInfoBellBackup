@@ -713,6 +713,15 @@ static struct ctl_table ipv4_table[] = {
 		.proc_handler   = proc_dointvec_minmax,
 		.extra1         = &four
 	},
+	{
+		.procname       = "tcp_wnd_shrink",
+		.data           = &sysctl_tcp_wnd_shrink,
+		.maxlen         = sizeof(int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec_minmax,
+		.extra1         = SYSCTL_ZERO,
+		.extra2         = SYSCTL_ONE
+	},
 	{ }
 };
 

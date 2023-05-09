@@ -302,7 +302,7 @@ static u16 tcp_select_window(struct sock *sk)
 	}
 
 #ifdef CONFIG_TCP_WND_SHRINK
-	if (sock_flag(sk, SOCK_NO_MEM)) {
+	if (sysctl_tcp_wnd_shrink && sock_flag(sk, SOCK_NO_MEM)) {
 		if (sk_memory_allocated(sk) < sk_prot_mem_limits(sk, 2))
 			sock_reset_flag(sk, SOCK_NO_MEM);
 		else

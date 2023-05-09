@@ -3035,7 +3035,8 @@ static void tcp_set_xmit_timer(struct sock *sk)
 	 * not needed to schedule the RTO. The normal probe0 can't reach
 	 * here, so it must be window-shrink probe0 case here.
 	 */
-	if (icsk->icsk_pending == ICSK_TIME_PROBE0)
+	if (sysctl_tcp_wnd_shrink &&
+	    icsk->icsk_pending == ICSK_TIME_PROBE0)
 		return;
 #endif
 
@@ -3326,6 +3327,9 @@ static void tcp_ack_probe_shrink(struct sock *sk)
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	unsigned long when;
+
+	if (!sysctl_tcp_wnd_shrink)
+		return;
 
 	if (tcp_rtx_overflow(sk)) {
 		when = tcp_probe0_when(sk, TCP_RTO_MAX);
@@ -4871,6 +4875,14 @@ queue_and_out:
 			sk_forced_mem_schedule(sk, skb->truesize);
 		else if (tcp_try_rmem_schedule(sk, skb, skb->truesize)) {
 #ifdef CONFIG_TCP_WND_SHRINK
+			if (sysctl_tcp_wnd_shrink)
+				goto do_wnd_shrink;
+#endif
+			NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPRCVQDROP);
+			sk->sk_data_ready(sk);
+			goto drop;
+#ifdef CONFIG_TCP_WND_SHRINK
+do_wnd_shrink:
 			if (sock_flag(sk, SOCK_NO_MEM)) {
 				NET_INC_STATS(sock_net(sk),
 					      LINUX_MIB_TCPRCVQDROP);
@@ -4879,10 +4891,6 @@ queue_and_out:
 			}
 			sk_forced_mem_schedule(sk, skb->truesize);
 			sock_set_flag(sk, SOCK_NO_MEM);
-#else
-			NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPRCVQDROP);
-			sk->sk_data_ready(sk);
-			goto drop;
 #endif
 		}
 
@@ -4924,9 +4932,7 @@ out_of_window:
 		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPOOWDROP);
 		tcp_enter_quickack_mode(sk, TCP_MAX_QUICKACKS);
 		inet_csk_schedule_ack(sk);
-#ifndef CONFIG_TCP_WND_SHRINK
 drop:
-#endif
 		tcp_drop(sk, skb);
 		return;
 	}

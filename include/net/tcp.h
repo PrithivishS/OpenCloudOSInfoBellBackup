@@ -255,6 +255,7 @@ extern int sysctl_tcp_synack_rto_interval;
 extern int sysctl_tcp_rto_min;
 extern int sysctl_tcp_rto_max;
 extern int sysctl_tcp_proc_sched;
+extern int sysctl_tcp_wnd_shrink;
 
 #define TCP_RACK_LOSS_DETECTION  0x1 /* Use RACK to detect losses */
 #define TCP_RACK_STATIC_REO_WND  0x2 /* Use static RACK reo wnd */
@@ -1852,6 +1853,9 @@ static inline bool tcp_probe0_needed(const struct sock *sk)
 	/* for the normal case */
 	if (__tcp_probe0_needed(sk))
 		return true;
+
+	if (!sysctl_tcp_wnd_shrink)
+		return false;
 
 	/* for the window shrink case */
 	return tcp_rtx_overflow(sk);
