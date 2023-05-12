@@ -256,3 +256,5 @@ obj-$(CONFIG_MFD_ROHM_BD70528)	+= rohm-bd70528.o
 obj-$(CONFIG_MFD_ROHM_BD718XX)	+= rohm-bd718x7.o
 obj-$(CONFIG_MFD_STMFX) 	+= stmfx.o
 
+obj-$(CONFIG_MFD_PHYTIUM_I2S_LSD) += phytium_px210_i2s_lsd.o
+obj-$(CONFIG_MFD_PHYTIUM_I2S_MMD) += phytium_px210_i2s_mmd.o
