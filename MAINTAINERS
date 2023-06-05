@@ -2096,6 +2096,7 @@ W:	https://www.phytium.com.cn
 F:	arch/arm64/boot/dts/phytium/*
 F:	Documentation/devicetree/bindings/net/can/phytium-can.txt
 F:	drivers/net/can/phytium/*
+F:	drivers/media/platform/phytium-jpeg/phytium_jpeg*
 
 ARM/PLEB SUPPORT
 M:	Peter Chubb <pleb@gelato.unsw.edu.au>
