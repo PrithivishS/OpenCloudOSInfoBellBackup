@@ -7,6 +7,14 @@ config CDNS_I3C_MASTER
 	help
 	  Enable this driver if you want to support Cadence I3C master block.
 
+config PHYTIUM_I3C_MASTER
+        tristate "Phytium I3C master driver"
+        depends on I3C
+        depends on HAS_IOMEM
+        depends on !(ALPHA || PARISC)
+        help
+          Enable this driver if you want to support Phytium I3C master block.
+
 config DW_I3C_MASTER
 	tristate "Synospsys DesignWare I3C master driver"
 	depends on I3C
