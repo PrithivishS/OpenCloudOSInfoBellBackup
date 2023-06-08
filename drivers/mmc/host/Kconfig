@@ -1026,11 +1026,11 @@ config MMC_PHYTIUM_MCI_PCI
          If unsure, say N.
 
 config MMC_PHYTIUM_MCI_PLTFM
-        tristate "Phytium MultiMedia Card Interface support"
+       tristate "Phytium MultiMedia Card Interface support"
        depends on ARCH_PHYTIUM && OF
        default y if ARCH_PHYTIUM
-        help
-          This selects support for the MultiMedia Card Interface on Phytium SoCs.
+       help
+         This selects support for the MultiMedia Card Interface on Phytium SoCs.
          If you have a controller with this interface, say Y or M here.
 
          If unsure, say N.
