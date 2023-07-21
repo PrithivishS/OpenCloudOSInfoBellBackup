@@ -398,6 +398,33 @@ static int bpf_stats_handler(struct ctl_table *table, int write,
 }
 #endif
 
+#ifdef CONFIG_ARM64
+extern struct static_key_false fast_copy_page_enabled;
+int sysctl_enable_fast_copy_page(struct ctl_table *table, int write,
+				void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	struct ctl_table t;
+	int err;
+	int state = static_branch_likely(&fast_copy_page_enabled);
+
+	if (write && !capable(CAP_SYS_ADMIN))
+		return -EPERM;
+
+	t = *table;
+	t.data = &state;
+	err = proc_dointvec_minmax(&t, write, buffer, lenp, ppos);
+	if (err < 0)
+		return err;
+	if (write) {
+		if (state)
+			static_branch_enable(&fast_copy_page_enabled);
+		else
+			static_branch_disable(&fast_copy_page_enabled);
+	}
+	return err;
+}
+#endif
+
 static struct ctl_table kern_table[] = {
 	{
 		.procname       = "container_cpuquota_aware",
@@ -1700,6 +1727,17 @@ static struct ctl_table vm_table[] = {
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= &one_hundred,
 	},
+#ifdef CONFIG_ARM64
+	{
+		.procname       = "fast_copy_page_enabled",
+		.data           = NULL,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = sysctl_enable_fast_copy_page,
+		.extra1         = SYSCTL_ZERO,
+		.extra2         = SYSCTL_ONE,
+	},
+#endif
 #ifdef CONFIG_HUGETLB_PAGE
 	{
 		.procname	= "nr_hugepages",
@@ -1816,6 +1854,14 @@ static struct ctl_table vm_table[] = {
 		.maxlen		= sizeof(percpu_pagelist_fraction),
 		.mode		= 0644,
 		.proc_handler	= percpu_pagelist_fraction_sysctl_handler,
+		.extra1		= SYSCTL_ZERO,
+	},
+	{
+		.procname	= "page_lock_unfairness",
+		.data		= &sysctl_page_lock_unfairness,
+		.maxlen		= sizeof(sysctl_page_lock_unfairness),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 	},
 #ifdef CONFIG_MMU

@@ -302,9 +302,9 @@ static void blkcg_dkstats_free(struct blkcg_dkstats *ds)
 {
 #ifdef CONFIG_SMP
 	if (!list_empty(&ds->alloc_node)) {
-		spin_lock_irq(&alloc_lock);
+		spin_lock(&alloc_lock);
 		list_del_init(&ds->alloc_node);
-		spin_unlock_irq(&alloc_lock);
+		spin_unlock(&alloc_lock);
 	}
 #endif
 	list_del_init(&ds->list_node);
@@ -320,7 +320,7 @@ static void blkcg_dkstats_free_all(struct request_queue *q)
 		struct blkcg *blkcg = blkg->blkcg;
 		struct blkcg_dkstats *ds, *ns;
 
-		spin_lock_irq(&blkcg->lock);
+		spin_lock(&blkcg->lock);
 		list_for_each_entry_safe(ds, ns, &blkcg->dkstats_list, list_node) {
 			if (part_to_disk(ds->part)->queue != q)
 				continue;
@@ -330,7 +330,7 @@ static void blkcg_dkstats_free_all(struct request_queue *q)
 
 			blkcg_dkstats_free(ds);
 		}
-		spin_unlock_irq(&blkcg->lock);
+		spin_unlock(&blkcg->lock);
 	}
 	spin_unlock_irq(&q->queue_lock);
 }

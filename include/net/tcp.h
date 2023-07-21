@@ -255,6 +255,7 @@ extern int sysctl_tcp_synack_rto_interval;
 extern int sysctl_tcp_rto_min;
 extern int sysctl_tcp_rto_max;
 extern int sysctl_tcp_proc_sched;
+extern int sysctl_tcp_wnd_shrink;
 
 #define TCP_RACK_LOSS_DETECTION  0x1 /* Use RACK to detect losses */
 #define TCP_RACK_STATIC_REO_WND  0x2 /* Use static RACK reo wnd */
@@ -671,6 +672,8 @@ int tcp_mtu_to_mss(struct sock *sk, int pmtu);
 int tcp_mss_to_mtu(struct sock *sk, int mss);
 void tcp_mtup_init(struct sock *sk);
 void tcp_init_buffer_space(struct sock *sk);
+
+static inline bool tcp_probe0_needed(const struct sock *sk);
 
 static inline void tcp_bound_rto(const struct sock *sk)
 {
@@ -1347,7 +1350,7 @@ static inline unsigned long tcp_probe0_when(const struct sock *sk,
 
 static inline void tcp_check_probe_timer(struct sock *sk)
 {
-	if (!tcp_sk(sk)->packets_out && !inet_csk(sk)->icsk_pending)
+	if (tcp_probe0_needed(sk) && !inet_csk(sk)->icsk_pending)
 		tcp_reset_xmit_timer(sk, ICSK_TIME_PROBE0,
 				     tcp_probe0_base(sk), TCP_RTO_MAX,
 				     NULL);
@@ -1828,6 +1831,41 @@ static inline bool tcp_rtx_and_write_queues_empty(const struct sock *sk)
 {
 	return tcp_rtx_queue_empty(sk) && tcp_write_queue_empty(sk);
 }
+
+static inline bool __tcp_probe0_needed(const struct sock *sk)
+{
+	return !tcp_sk(sk)->packets_out && !tcp_write_queue_empty(sk);
+}
+
+#ifdef CONFIG_TCP_WND_SHRINK
+
+static inline bool tcp_rtx_overflow(const struct sock *sk)
+{
+	struct sk_buff *rtx_head = tcp_rtx_queue_head(sk);
+
+	return rtx_head && after(TCP_SKB_CB(rtx_head)->end_seq,
+				 tcp_wnd_end(tcp_sk(sk)));
+}
+
+/* check if 0 window probe is need by the sk */
+static inline bool tcp_probe0_needed(const struct sock *sk)
+{
+	/* for the normal case */
+	if (__tcp_probe0_needed(sk))
+		return true;
+
+	if (!sysctl_tcp_wnd_shrink)
+		return false;
+
+	/* for the window shrink case */
+	return tcp_rtx_overflow(sk);
+}
+#else
+static inline bool tcp_probe0_needed(const struct sock *sk)
+{
+	return __tcp_probe0_needed(sk);
+}
+#endif
 
 static inline void tcp_add_write_queue_tail(struct sock *sk, struct sk_buff *skb)
 {

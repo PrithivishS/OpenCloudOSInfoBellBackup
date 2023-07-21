@@ -39,6 +39,17 @@
 
 #include "smpboot.h"
 
+#ifdef CONFIG_ARM64
+static int cpu0_downable;
+static int __init enable_cpu0_offline(char *str)
+{
+	cpu0_downable = 1;
+	return 1;
+}
+
+__setup("cpu0_can_offline", enable_cpu0_offline);
+#endif
+
 /**
  * cpuhp_cpu_state - Per cpu hotplug state storage
  * @state:	The current cpu state
@@ -1004,6 +1015,15 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen,
 
 	if (!cpu_present(cpu))
 		return -EINVAL;
+
+	/*
+	 * Core 0 of some server models with ARM architecture cannot be taken
+	 * offline, so it is rejected by default(ARM).
+	 */
+#ifdef CONFIG_ARM64
+	if (cpu == 0 && !cpu0_downable)
+		return -EINVAL;
+#endif
 
 	cpus_write_lock();
 

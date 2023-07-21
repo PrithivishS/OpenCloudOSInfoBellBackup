@@ -761,11 +761,12 @@ static const struct proto_ops unix_seqpacket_ops = {
 	.set_peek_off =	unix_set_peek_off,
 };
 
-static struct proto unix_proto = {
+struct proto unix_proto = {
 	.name			= "UNIX",
 	.owner			= THIS_MODULE,
 	.obj_size		= sizeof(struct unix_sock),
 };
+EXPORT_SYMBOL(unix_proto);
 
 static struct sock *unix_create1(struct net *net, struct socket *sock, int kern)
 {

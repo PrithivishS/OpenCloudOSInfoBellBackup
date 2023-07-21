@@ -1990,7 +1990,6 @@ static __latent_entropy struct task_struct *copy_process(
 	p->hardirq_context = 0;
 	p->softirq_context = 0;
 #endif
-
 	p->pagefault_disabled = 0;
 
 #ifdef CONFIG_LOCKDEP

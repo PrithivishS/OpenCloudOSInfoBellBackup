@@ -728,3 +728,14 @@ config TCP_MD5SIG
 	  on the Internet.
 
 	  If unsure, say N.
+
+config TCP_WND_SHRINK
+	bool "TCP: Support window shrink when no memory"
+	default y
+	help
+	  Skb will be dropped when no memory, which makes client keep
+	  retrans util timeout and it's not friendly to the users. Enable
+	  this configuration will make the connection keep in zero-window
+	  probe state and avoid connection break.
+
+	  If unsure, say N
