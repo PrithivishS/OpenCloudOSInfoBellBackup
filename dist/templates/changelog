@@ -1,2 +1,265 @@
+* Tue Jul 25 2023 Alex Shi <alexsshi@tencent.com> - 5.4.119-20.0009.28
+
+- * This version includes Intel SPR CPU support, Phytium D1000/D2000 drivers.
+- * And fixed couples bugs includes, ARM, x86, KVM, FS, memory, drivers etc.
+- * For details, please check the following:
+-
+- dist: remove leds from filter out directory
+- sdci: fix Phytium sdci driver probe failed
+- I2S driver support for Phytium CPUs
+- Add PWM supprt on Phytium SoCs
+- Add support for Phytium SoC RNG This patch adds the Phytium Random Number Generator (RNG) support.
+- Input: Add a new serio driver for Phytium PCI PS/2 controller
+- mmc-phytium-Add-support-for-the-Phytium-MMC
+- mmc-add-Phytium-SD-host-controller-support
+- I3C driver support for Phytium desktop and embedded CPUs
+- Add Phytium ADC support
+- add Phytium w1 bus master driver
+- Input phytium keypad Add Phytium keypad driver
+- Add support for GD25Q128E, a 16MiB SPI Nor flash from GigaDevice
+- Add driver for Phytium Hardware semaphore device found in E-series SoCs
+- Phytium JPEG Encoder driver Support for the Phytium JPEG Encoder Engine embedded in the Phytium SOCs.
+- Add Phytium BT BMC driver support
+-  Add Phytium KCS IPMI BMC driver support
+- Add support for the Phytium QuadSPI controller driver
+- xHCI-Add-XHCI_SLOWDOWN_QUIRK-quirk-for-phytium-xHCI
+- DRM phytium Add Phytium Display Engine support
+- Add support for PCIe endpoint controller support
+- Add support for Phytium fan tacho driver support
+- Add support for Phytium INTx controller
+- irqchip/gic-v3-its: Balance initial LPI affinity across CPUs
+- irqchip/gic-v3-its: Track LPI distribution on a per CPU basis
+- usb: phytium: Add support for Phytium USB controller This patch adds the Phytium USBHS DRD controller support.
+- usb: xhci: xhci-plat: Support for Phytium Pe220x
+- dts: phytium: Add dts for Phytium Pe220x SoCs Add initial device tree for Phytium Pe220x SoCs.
+- SPI platform driver support for Phytium desktop CPUS
+- OPTEE driver support for Phytium CPUs
+- GPIO driver support for Phytium desktop and embedded CPUs
+- HDA driver support for Phytium desktop
+- serial driver support for Phytium desktop and embedded CPUs
+- mailbox driver support for Phytium desktop and embedded CPUs
+- Add-Phytium-CAN-controller-support
+- I2C driver support for Phytium Desktop CPUs
+- irqlatency: add irq latency monitor support
+- dist: config: clean up LOCALVERSION related config
+- fix gcc compile floating-point computation program when using option -march=native
+- config: remove LOCALVERSION
+- virtio-blk: remove VIRTIO_BLK_F_SCSI support
+- cpuidle,intel_idle: Fix CPUIDLE_FLAG_IRQ_ENABLE
+- Add Intel SPR CPU features support, includes new intel idle driver
+- mm: make wait_on_page_writeback() wait for multiple pending writebacks
+- KVM: Do not leak memory for duplicate debugfs directories
+- net: tcp: handle window shrink properly
+- ipvs: queue delayed work to expire no destination connections if expire_nodest_conn=1
+- net: tcp: send zero-window when no memory
+- driver: update e1000e to 3.8.4
+- drm: Fixed system hang caused by memory failure
+- arm64: kexec_file: add crash dump support
+- libfdt: include fdt_addresses.c
+- arm64: kdump: remove dependency on arm64_dma32_phys_limit
+- kdump: update Documentation about crashkernel
+- arm64: kdump: add memory for devices by DT property linux,usable-memory-range
+- x86, arm64: Add ARCH_WANT_RESERVE_CRASH_KERNEL config
+- arm64: kdump: reimplement crashkernel=X
+- arm64: kdump: introduce some macroes for crash kernel reservation
+- x86/elf: Move vmcore_elf_check_arch_cross to arch/x86/include/asm/elf.h
+- x86: kdump: move reserve_crashkernel[_low]() into crash_core.c
+- x86: kdump: move xen_pv_domain() check and insert_resource() to setup_arch()
+- x86: kdump: use macro CRASH_ADDR_LOW_MAX in functions reserve_crashkernel()
+- x86: kdump: make the lower bound of crash kernel reservation consistent
+- x86: kdump: replace the hard-coded alignment with macro CRASH_ALIGN
+- arm64: remove the hard coded crashkernel address limit
+- config: enable BFQ io scheduler
+- config: change CONFIG_CONFIGFS_FS to Y for default conf
+- security: Fix hook iteration for secid_to_secctx
+- mm/ksm: Remove reuse_ksm_page()
+- mm: do_wp_page() simplification
+- arm64: fix NEON/VFP reentrant in fast_copy_page
+- arm64: implemented a fast copy_page version while NEON/VFP is met
+- bpf: enabled the bpf_lsm function
+- security: Fix the default value of secid_to_secctx hook
+- firmware: fix one UAF issue
+- media:cec:fix double free and uaf issue when cancel data during noblocking
+- gpu/xen: Fix a use after free in xen_drm_drv_init
+- igc: Fix use-after-free error during reset
+- igc: Remove _I_PHY_ID checking
+- config: change CONFIG_CONFIGFS_FS to Y for AARCH64
+- config: add DRM_AST hyperV,network and DRM modules
+- ARM64/conf: Disable CONFIG_RODATA_FULL_DEFAULT_ENABLED
+- bpf: enable CONFIG_BPF_JIT_ALWAYS_ON for arm
+- net: bpf: enable CONFIG_NET_ACT_BPF for x86
+- bpf: enable CONFIG_BPF_STREAM_PARSER to support sockhash map
+- net: usb: ax88179_178a: Fix out-of-bounds accesses in RX fixup
+- xfrm: xfrm_policy: fix a possible double xfrm_pols_put() in xfrm_bundle_lookup()
+- NFC: netlink: fix sleep in atomic bug when firmware download timeout
+- net: rose: fix UAF bugs caused by timer handler
+- netfilter: nf_queue: do not allow packet truncation below transport header offset
+- ceph: fix memory out of bound on module load
+- cpuinfo: rename flags to Features in /proc/cpuinfo
+- smp: fix slave core boot fail on altramax platform
+- arm64/crash_core: Export TCR_EL1.T1SZ in vmcoreinfo
+- veth: Implement ethtool's get_channels() callback
+- driver: update hisilicon hardware crypto engine
+- cpuhotplug: reject core0 offline by default
+- xfrm: add prep for esp beet mode offload
+- shm: extend forced shm destroy to support objects from several IPC nses
+- block: fix the incorrect spin_lock_irq to spin_lock
+- md/raid10: avoid deadlock on recovery.
+- x86/mpparse, kexec: switch apic driver early if x2apic is pre-enabled
+- config: open CONFIG_USB_USBNET and CONFIG_USB_NET_RNDIS_HOST
+- jfs: prevent NULL deref in diFree
+- SUNRPC: Ensure we flush any closed sockets before xs_xprt_free()
+- ext4: verify dir block before splitting it
+- NFSv4: Handle case where the lookup of a directory fails
+- udf: Fix NULL ptr deref when converting from inline format
+- f2fs: fix to do sanity check on last xattr entry in __f2fs_setxattr()
+- xfs: map unwritten blocks in XFS_IOC_{ALLOC,FREE}SP just like fallocate
+- fuse: fix pipe buffer lifetime for direct_io
+- f2fs: fix to do sanity check on inode type during garbage collection
+- driver: update megaraid_sas to 07.721.02.00
+- sctp: use call_rcu to free endpoint
+- phonet: refcount leak in pep_sock_accep
+- netfilter: nf_tables: disallow non-stateful expression in sets earlier
+- config: open CONFIG_DRM_AMDGPU_USERPTR
+- llc: fix netdevice reference leaks in llc_ui_bind()
+- netfilter: nf_tables: initialize registers in nft_do_chain()
+- af_key: add __GFP_ZERO flag for compose_sadb_supported in function pfkey_register
+- tipc: improve size validations for received domain records
+- net: sched: fix use-after-free in tc_new_tfilter()
+- fbcon: Disallow setting font bigger than screen size
+- ptrace: Check PTRACE_O_SUSPEND_SECCOMP permission on PTRACE_SEIZE
+- USB: gadget: validate endpoint index for xilinx udc
+- nfc: st21nfca: Fix potential buffer overflows in EVT_TRANSACTION
+- hamradio: improve the incomplete fix to avoid NPD
+- hamradio: defer ax25 kfree after unregister_netdev
+- net: hamradio: fix memory leak in mkiss_close
+- mm/hwpoison: fix error page recovered but reported "not recovered"
+- x86/mce: Reduce number of machine checks taken during recovery
+- Intel: generic_perform_write()/iomap_write_actor(): saner logics for short copy
+- Intel: x86/mce: Drop copyin special case for #MC
+- Intel: x86/mce: Change to not send SIGBUS error during copy from user
+- Intel: x86/mce: Avoid infinite loop for copy from user recovery
+- Intel: EDAC/i10nm: Retrieve and print retry_rd_err_log registers
+- Intel: Fix backport issue for MCA recovery
+- mm,hwpoison: send SIGBUS with error virutal address
+- mm/hwpoison: do not lock page again when me_huge_page() successfully recovers
+- mm,hwpoison: return -EHWPOISON to denote that the page has already been poisoned
+- mm/memory-failure: use a mutex to avoid memory_failure() races
+- x86/mce: Take action on UCNA/Deferred errors again
+- printk: Prepare for nested printk_nmi_enter()
+- ath9k: fix use-after-free in ath9k_hif_usb_rx_cb
+- x86: Clear .brk area at early boot
+- KVM: x86: Avoid theoretical NULL pointer dereference in kvm_irq_delivery_to_apic_fast()
+- KVM: Add infrastructure and macro to mark VM as bugged
+- KVM: x86/mmu: fix NULL pointer dereference on guest INVPCID
+- can: ems_usb: ems_usb_start_xmit(): fix double dev_kfree_skb() in error path
+- can: mcba_usb: mcba_usb_start_xmit(): fix double dev_kfree_skb in error path
+- can: usb_8dev: usb_8dev_start_xmit(): fix double dev_kfree_skb() in error path
+- sr9700: sanity check for packet length
+- yam: fix a memory leak in yam_siocdevprivate()
+- drivers: hamradio: 6pack: fix UAF bug caused by mod_timer()
+- mwifiex: Fix skb_over_panic in mwifiex_usb_recv()
+- xen/netback: don't queue unlimited number of packages
+- xen/netback: fix rx queue stall detection
+- netdevsim: Zero-initialize memory for new map's value in function nsim_bpf_map_alloc
+- config/performance: Enable CONFIG_PREEMPT_NONE by default
+- config/performance: Disable PV_SPINLOCK by default
+- config/performance: Enable CONFIG_ASYNC_PAGE_LOCKING
+- config/ARM64/performance: Enable CONFIG_ASYNC_PAGE_LOCKING
+- ARM64/Kconfig: Add CONFIG_ASYNC_PAGE_LOCKING
+- ARM64/conf: Disable CONFIG_FS_ENCRYPTION
+- ARM64/conf: Disable CONFIG_RODATA_FULL_DEFAULT_ENABLED
+- ARM64/conf: Adjust PAGE_SIZE to 4K from 64K
+- open CONFIG_JUMP_LABEL to optimize very unlikely/likely branches
+- config/x86: Disable CONFIG_LATENCYTOP by default
+- mm/filemap/c: break generic_file_buffered_read up into multiple functions
+- fs: export generic_file_buffered_read()
+- mm/filemap.c: remove unused argument from shrink_readahead_size_eio()
+- mm: allow a controlled amount of unfairness in the page lock
+- list: add "list_del_init_careful()" to go with "list_empty_careful()"
+- mm: rewrite wait_on_page_bit_common() logic
+- fs: Add IOCB_NOIO flag for generic_file_read_iter
+- mm: mark async iocb read as NOWAIT once some data has been copied
+- mm: fix VM_BUG_ON(PageTail) and BUG_ON(PageWriteback)
+- mm: never attempt async page lock if we've transferred data already
+- io_uring: fix async buffered reads when readahead is disabled
+- mm: support async buffered reads in generic_file_buffered_read()
+- mm: add support for async page locking
+- mm: abstract out wake_page_match() from wake_page_function()
+- ext4: drop unnecessary journal handle in delalloc write
+- ext4: factor out write end code of inline file
+- ext4: correct the error path of ext4_write_inline_data_end()
+- ext4: check and update i_disksize properly
+- mm, slub: use prefetchw instead of prefetch
+- config/ARM64: Add config.performance for highest performing version
+- config: Add config.performance for highest performing version
+- xen/gnttab: fix gnttab_end_foreign_access() without page specified
+- xen/pvcalls: use alloc/free_pages_exact()
+- xen: remove gnttab_query_foreign_access()
+- xen/scsifront: don't use gnttab_query_foreign_access() for mapped status
+- xen/netfront: force data bouncing when backend is untrusted
+- xen/netfront: fix leaking data in shared pages
+- xen/netfront: react properly to failing gnttab_end_foreign_access_ref()
+- xen/netfront: don't use gnttab_query_foreign_access() for mapped status
+- xen/netfront: destroy queues before real_num_tx_queues is zeroed
+- xen/netfront: harden netfront against event channel storms
+- xen/netfront: don't trust the backend response data blindly
+- xen/netfront: disentangle tx_skb_freelist
+- xen/netfront: don't read data from request on the ring page
+- xen/netfront: read response from backend only once
+- xen/9p: use alloc/free_pages_exact()
+- xen/xenbus: don't let xenbus_grant_ring() remove grants in error case
+- xen/gntalloc: don't use gnttab_query_foreign_access()
+- xen/grant-table: add gnttab_try_end_foreign_access()
+- xen/console: harden hvc_xen against event channel storms
+- usb: gadget: rndis: check size of RNDIS_MSG_SET command
+- USB: gadget: validate interface OS descriptor requests
+- usb: gadget: don't release an existing dev->buf
+- HID: asus: Add depends on USB_HID to HID_ASUS Kconfig option
+- HID: holtek: fix mouse probing
+- HID: check for valid USB device for many HID drivers
+- HID: wacom: fix problems when device is not a valid USB device
+- HID: bigbenff: prevent null pointer dereference
+- HID: add USB_HID dependancy on some USB HID drivers
+- HID: add USB_HID dependancy to hid-chicony
+- HID: add USB_HID dependancy to hid-prodikeys
+- HID: add hid_is_usb() function to make it simpler for USB detection
+- USB: gadget: detect too-big endpoint 0 requests
+- ALSA: pcm: Fix races among concurrent hw_params and hw_free calls
+- mmc: block: fix read single on recovery logic
+- tee: handle lookup of shm with reference count 0
+- moxart: fix potential use-after-free on remove path
+- drm/vmwgfx: Fix stale file descriptors on failed usercopy
+- drm/i915: Flush TLBs before releasing backing store
+- powerpc/32: Fix overread/overwrite of thread_struct via ptrace
+- dm verity: set DM_TARGET_IMMUTABLE feature flag
+- lockdown: Fix kexec lockdown bypass with ima policy
+- nfc: nfcmrvl: main: reorder destructive operations in nfcmrvl_nci_unregister_dev to avoid bugs
+- perf: Fix sys_perf_event_open() race against self
+- tty: use new tty_insert_flip_string_and_push_buffer() in pty_write()
+- tty: extract tty_flip_buffer_commit() from tty_flip_buffer_push()
+- tty: drop tty_schedule_flip()
+- lockdown: also lock down previous kgdb use
+- net/proc: added sockets details statistics
+- Fix Hawei TM280 ethernet card can't resolve ipip internal packet
+- cgroup: Use open-time credentials for process migraton perm checks
+- block-map: add __GFP_ZERO flag for alloc_page in function bio_copy_kern
+- xen/blkfront: force data bouncing when backend is untrusted
+- xen/blkfront: fix leaking data in shared pages
+- xen/blkfront: don't use gnttab_query_foreign_access() for mapped status
+- xen/blkfront: harden blkfront against event channel storms
+- xen/blkfront: don't trust the backend response data blindly
+- xen/blkfront: don't take local copy of a request from the ring page
+- xen/blkfront: read response from backend only once
+- bpf: Verifer, adjust_scalar_min_max_vals to always call update_reg_bounds()
+- xen/arm: Fix race in RB-tree based P2M accounting
+- ARM: fix build error when BPF_SYSCALL is disabled
+- ARM: include unprivileged BPF status in Spectre V2 reporting
+- ARM: report Spectre v2 status through sysfs
+- kabi: change Module.kabi_tkci from all kabi to core kabi
+- kabi: do not put __stack_chk_guard in Module.kabi baseline
+- kabi: update Module.kabi_tkci for checkkabi in tkci
+- kabi: update Module.kabi files for tkci check kabi
+
 * Wed Oct 05 2022 Kairui Song <kasong@tencent.com> - 5.4.119-19-0009.11
 - Initial dist port release
