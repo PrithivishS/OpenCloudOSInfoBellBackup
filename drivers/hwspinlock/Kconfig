@@ -23,6 +23,9 @@ config HWSPINLOCK_PHYTIUM
 	help
 	  Say y here to support the Phytium Hardware Spinlock device.
 
+	  This module is default disabled on OpenCloudOS 8.8. Please manually enable 
+	  if needed on Phytium embedded platform.
+
 	  If unsure, say N.
 
 config HWSPINLOCK_QCOM
