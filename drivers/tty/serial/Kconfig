@@ -83,6 +83,8 @@ config SERIAL_PHYTIUM_PCI
 	  This driver supports the Phytium UART controller on PCI/PCIe adapters.
 	  If you want to compile this driver into the kernel, say Y here.  To
 	  compile this driver as a module, choose M here.
+	  This driver is default disabled on OpenCloudOS 8.8. Please manually 
+	  enable on px210 platform.
 
 	  If unsure, say N.
 

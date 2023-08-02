@@ -118,6 +118,9 @@ config PHYTIUM_KCS_IPMI_BMC
 	  Provides a driver for the KCS (Keyboard Controller Style) IPMI
 	  interface found on Phytium SOCs.
 
+	  This driver is default disabled on OpenCloudOS 8.8. If your
+	  device is using e2000 as BMC, please manually enable this module.
+
 	  The driver implements the BMC side of the KCS contorller, it
 	  provides the access of KCS IO space for BMC side.
 
@@ -129,6 +132,9 @@ config PHYTIUM_BT_IPMI_BMC
 	  Provides a driver for the BT (Block Transfer) interface found
 	  on Phytium SOCs. The driver implements the BMC side of
 	  the BT interface.
+
+	  This driver is default disabled on OpenCloudOS 8.8. If your
+	  device is using e2000 as BMC, please manually enable this module.
 
 config NPCM7XX_KCS_IPMI_BMC
 	depends on ARCH_NPCM7XX || COMPILE_TEST
