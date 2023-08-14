@@ -1,7 +1,7 @@
-* Tue Jul 25 2023 Alex Shi <alexsshi@tencent.com> - 5.4.119-20.0009.28
+* Tue Jul 25 2023 Alex Shi <alexsshi@tencent.com> - 5.4.119-20.0009.29
 
-- * This version includes Intel SPR CPU support, Phytium D1000/D2000 drivers.
-- * And fixed couples bugs includes, ARM, x86, KVM, FS, memory, drivers etc.
+- * This version includes support, Phytium D1000/D2000 drivers; And fixed
+- * couples bugs includes, ARM, x86, KVM, FS, memory, drivers etc.
 - * For details, please check the following:
 -
 - dist: remove leds from filter out directory
