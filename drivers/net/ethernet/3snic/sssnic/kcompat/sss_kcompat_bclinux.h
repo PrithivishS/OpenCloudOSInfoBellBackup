@@ -1,0 +1,20 @@
+#ifndef _SSS_KCOMPAT_BCLINUX_H_
+#define _SSS_KCOMPAT_BCLINUX_H_
+#ifdef __BCLINUX_22_10__
+
+#if (KERNEL_VERSION(5, 10, 0) == LINUX_VERSION_CODE)	/*for BCLinux 22.10*/
+
+#ifndef HAVE_ETHTOOL_RINGPARAM_EXTACK
+#define HAVE_ETHTOOL_RINGPARAM_EXTACK
+#endif
+
+#ifndef HAVE_ETHTOOL_COALESCE_EXTACK
+#define HAVE_ETHTOOL_COALESCE_EXTACK
+#endif
+
+#endif
+
+#endif
+#endif
+
+

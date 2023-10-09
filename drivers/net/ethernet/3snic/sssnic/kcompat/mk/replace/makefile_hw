@@ -1,0 +1,64 @@
+
+SYS_TIME=$(shell date +%Y-%m-%d_%H:%M:%S)
+ccflags-y += -D __TIME_STR__=\"$(SYS_TIME)\"
+
+TAGET_KMOD_NAME ?= sssdk
+
+EXPORT_SYMBOL := true
+
+ccflags-y += -I$(PWD)/
+ccflags-y += -I$(PWD)/../include
+ccflags-y += -I$(PWD)/../include/hw
+ccflags-y += -I$(PWD)/../include/kernel
+ccflags-y += -I$(PWD)/include
+
+ccflags-y += -I$(PWD)/tool
+ccflags-y += -I$(PWD)/../kcompat
+
+ccflags-y += -Werror
+ccflags-y += -Wno-implicit-fallthrough
+
+include $(PWD)/../kcompat/mk/kcompat.mk
+
+obj-m += $(TAGET_KMOD_NAME).o
+$(TAGET_KMOD_NAME)-objs := sss_hw_main.o \
+			sss_pci_probe.o \
+			sss_pci_remove.o \
+			sss_pci_shutdown.o \
+			sss_pci_error.o \
+			sss_pci_sriov.o \
+			sss_pci_global.o \
+			sss_adapter_mgmt.o \
+			sss_hwdev_api.o \
+			sss_hwdev_cap.o \
+			sss_hwdev_export.o \
+			sss_hwdev_link.o \
+			sss_hwdev_init.o \
+			sss_hwdev_mgmt_info.o \
+			sss_hwdev_mgmt_channel.o \
+			sss_hwdev_io_flush.o \
+			sss_hwif_init.o \
+			sss_hwif_api.o \
+			sss_hwif_export.o \
+			sss_hwif_eq.o \
+			sss_hwif_mgmt_init.o \
+			sss_hwif_ceq.o \
+			sss_hwif_aeq.o \
+			sss_hwif_adm.o \
+			sss_hwif_adm_init.o \
+			sss_hwif_mbx.o \
+			sss_hwif_mbx_init.o \
+			sss_hwif_mbx_export.o \
+			sss_hwif_irq.o \
+			sss_hwif_ctrlq.o \
+			sss_hwif_ctrlq_init.o \
+			sss_hwif_ctrlq_export.o \
+			sss_common.o \
+			sss_wq.o \
+			../kcompat/sss_kcompat.o \
+			./tool/sss_tool_chip.o \
+			./tool/sss_tool_main.o \
+			./tool/sss_tool_sdk.o \
+			./tool/sss_tool_sm.o
+
+include $(PWD)/kernel.mk

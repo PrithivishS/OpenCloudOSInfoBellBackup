@@ -1,0 +1,18 @@
+#ifndef _SSS_KCOMPAT_KYLINSECOS_H_
+#define _SSS_KCOMPAT_KYLINSECOS_H_
+
+#ifdef __KYLINSECOS__
+#if (KERNEL_VERSION(5, 10, 0) == LINUX_VERSION_CODE)	/*for kylinSecOs 3.5.1*/
+
+#ifndef HAVE_ETHTOOL_COALESCE_EXTACK
+#define HAVE_ETHTOOL_COALESCE_EXTACK
+#endif
+
+#ifndef HAVE_ETHTOOL_RINGPARAM_EXTACK
+#define HAVE_ETHTOOL_RINGPARAM_EXTACK
+#endif
+
+#endif
+#endif
+
+#endif
